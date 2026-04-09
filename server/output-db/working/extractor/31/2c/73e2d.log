@@ -1,0 +1,4 @@
+[E 11:53:35 20808] CodeQL C/C++ Extractor 2.25.1
+[E 11:53:35 20808] Current directory: E:\graduate sheji\pythoncode\server
+[E 11:53:35 20808] Command: C:\Tools\codeql\cpp\tools\win64\extractor.exe --assembler --codeql-assembler-executable "c:\program files\mingw64\x86_64-w64-mingw32\bin\as.exe" -o C:\Users\Lenovo\AppData\Local\Temp\cc3Xe2yN.o C:\Users\Lenovo\AppData\Local\Temp\ccqzrNEu.s
+[E 11:53:35 20808] Extractor exited after mimicking assembler

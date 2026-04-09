@@ -1,0 +1,52 @@
+【Commit 原始内容】
+{
+  "id": "7829fb09a2b4268b30dd9bc782fa5ebee278b137",
+  "year": "2015",
+  "message": "lib: make memzero_explicit more robust against dead store elimination\n\nIn commit 0b053c951829 (\"lib: memzero_explicit: use barrier instead\nof OPTIMIZER_HIDE_VAR\"), we made memzero_explicit() more robust in\ncase LTO would decide to inline memzero_explicit() and eventually\nfind out it could be elimiated as dead store.\n\nWhile using barrier() works well for the case of gcc, recent efforts\nfrom LLVMLinux people suggest to use llvm as an alternative to gcc,\nand there, Stephan found in a simple stand-alone user space example\nthat llvm could nevertheless optimize and thus elimitate the memset().\nA similar issue has been observed in the referenced llvm bug report,\nwhich is regarded as not-a-bug.\n\nBased on some experiments, icc is a bit special on its own, while it\ndoesn't seem to eliminate the memset(), it could do so with an own\nimplementation, and then result in similar findings as with llvm.\n\nThe fix in this patch now works for all three compilers (also tested\nwith more aggressive optimization levels). Arguably, in the current\nkernel tree it's more of a theoretical issue, but imho, it's better\nto be pedantic about it.\n\nIt's clearly visible with gcc/llvm though, with the below code: if we\nwould have used barrier() only here, llvm would have omitted clearing,\nnot so with barrier_data() variant:\n\n  static inline void memzero_explicit(void *s, size_t count)\n  {\n    memset(s, 0, count);\n    barrier_data(s);\n  }\n\n  int main(void)\n  {\n    char buff[20];\n    memzero_explicit(buff, sizeof(buff));\n    return 0;\n  }\n\n  $ gcc -O2 test.c\n  $ gdb a.out\n  (gdb) disassemble main\n  Dump of assembler code for function main:\n   0x0000000000400400  <+0>: lea   -0x28(%rsp),%rax\n   0x0000000000400405  <+5>: movq  $0x0,-0x28(%rsp)\n   0x000000000040040e <+14>: movq  $0x0,-0x20(%rsp)\n   0x0000000000400417 <+23>: movl  $0x0,-0x18(%rsp)\n   0x000000000040041f <+31>: xor   %eax,%eax\n   0x0000000000400421 <+33>: retq\n  End of assembler dump.\n\n  $ clang -O2 test.c\n  $ gdb a.out\n  (gdb) disassemble main\n  Dump of assembler code for function main:\n   0x00000000004004f0  <+0>: xorps  %xmm0,%xmm0\n   0x00000000004004f3  <+3>: movaps %xmm0,-0x18(%rsp)\n   0x00000000004004f8  <+8>: movl   $0x0,-0x8(%rsp)\n   0x0000000000400500 <+16>: lea    -0x18(%rsp),%rax\n   0x0000000000400505 <+21>: xor    %eax,%eax\n   0x0000000000400507 <+23>: retq\n  End of assembler dump.\n\nAs gcc, clang, but also icc defines __GNUC__, it's sufficient to define\nthis in compiler-gcc.h only to be picked up. For a fallback or otherwise\nunsupported compiler, we define it as a barrier. Similarly, for ecc which\ndoes not support gcc inline asm.\n\nReference: https://llvm.org/bugs/show_bug.cgi?id=15495",
+  "patches": {
+    "include/linux/compiler-gcc.h": "@@ -9,10 +9,24 @@\n \t\t   + __GNUC_MINOR__ * 100 \\\n \t\t   + __GNUC_PATCHLEVEL__)\n \n-\n /* Optimization barrier */\n+\n /* The \"volatile\" is due to gcc bugs */\n #define barrier() __asm__ __volatile__(\"\": : :\"memory\")\n+/*\n+ * This version is i.e. to prevent dead stores elimination on @ptr\n+ * where gcc and llvm may behave differently when otherwise using\n+ * normal barrier(): while gcc behavior gets along with a normal\n+ * barrier(), llvm needs an explicit input variable to be assumed\n+ * clobbered. The issue is as follows: while the inline asm might\n+ * access any memory it wants, the compiler could have fit all of\n+ * @ptr into memory registers instead, and since @ptr never escaped\n+ * from that, it proofed that the inline asm wasn't touching any of\n+ * it. This version works well with both compilers, i.e. we're telling\n+ * the compiler that the inline asm absolutely may see the contents\n+ * of @ptr. See also: https://llvm.org/bugs/show_bug.cgi?id=15495\n+ */\n+#define barrier_data(ptr) __asm__ __volatile__(\"\": :\"r\"(ptr) :\"memory\")\n \n /*\n  * This macro obfuscates arithmetic on a variable address so that gcc",
+    "include/linux/compiler-intel.h": "@@ -13,9 +13,12 @@\n /* Intel ECC compiler doesn't support gcc specific asm stmts.\n  * It uses intrinsics to do the equivalent things.\n  */\n+#undef barrier_data\n #undef RELOC_HIDE\n #undef OPTIMIZER_HIDE_VAR\n \n+#define barrier_data(ptr) barrier()\n+\n #define RELOC_HIDE(ptr, off)\t\t\t\t\t\\\n   ({ unsigned long __ptr;\t\t\t\t\t\\\n      __ptr = (unsigned long) (ptr);\t\t\t\t\\",
+    "include/linux/compiler.h": "@@ -169,6 +169,10 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);\n # define barrier() __memory_barrier()\n #endif\n \n+#ifndef barrier_data\n+# define barrier_data(ptr) barrier()\n+#endif\n+\n /* Unreachable code */\n #ifndef unreachable\n # define unreachable() do { } while (1)",
+    "lib/string.c": "@@ -607,7 +607,7 @@ EXPORT_SYMBOL(memset);\n void memzero_explicit(void *s, size_t count)\n {\n \tmemset(s, 0, count);\n-\tbarrier();\n+\tbarrier_data(s);\n }\n EXPORT_SYMBOL(memzero_explicit);\n "
+  }
+}
+
+【思维链】
+我们被问到："分析一个补丁，判断该补丁所修改的原始代码是否可能受到“编译器引入的安全漏洞（CISB）”的影响。" 补丁信息以JSON格式给出，包含commit信息、修改内容及前后代码片段。我们需要按照五个步骤进行结构化推理，但最终输出只需要最后一行判断结果。
+
+ 给定补丁：来自commit 7829fb09a2b4268b30dd9bc782fa5ebee278b137，消息是关于"lib: make memzero_explicit more robust against dead store elimination"。补丁修改了多个文件，主要是在compiler-gcc.h中增加了barrier_data宏，并在memzero_explicit函数中将barrier()替换为barrier_data(s)。
+
+ 步骤一：理解程序员的原始安全意图。
+ 原始代码中，memzero_explicit函数用于将内存区域清零，然后调用barrier()。根据提交信息，memzero_explicit的目的是确保敏感数据（如密码、密钥）在使用后被安全清除，防止数据残留。程序员的安全意图是：即使编译器进行优化，也不应该消除这个清零操作（因为通常如果内存之后不再被使用，编译器可能会认为清零是死存储而消除它）。barrier()的作用是防止编译器优化越过屏障，但根据提交信息，仅用barrier()可能不足以阻止某些编译器（如llvm）消除清零操作，因为barrier()没有明确指示内联汇编会访问指针s所指向的内存。
+
+ 原始代码的安全目标：确保清零操作不会被编译器优化掉，从而保证敏感数据从内存中清除。
+
+ 步骤二：识别编译器的假设与优化行为。
+ 编译器在优化时假设：如果某些存储（store）在后来的程序执行中不会被读取，那么这些存储就是死存储（dead store），可以安全消除。此外，编译器假设内联汇编语句如果没有明确声明会读取某些内存，那么它就不会读取那些内存。原始代码中的barrier()是一个内存屏障，它告诉编译器不要重排指令，但它没有指定哪些内存会被访问。因此，编译器可能认为清零操作后的屏障不会读取s指向的内存，所以如果s之后不再被使用，整个memset可能会被消除。
+
+ 步骤三：分析“意图”与“假设”之间的冲突。
+ 程序员的意图是保证清零操作一定执行，但编译器的假设（死存储消除优化）可能导致清零操作被移除。冲突在于：程序员依赖屏障来防止优化，但屏障的语义不够强，编译器仍然可以证明清零操作是死存储并消除它。
+
+ 步骤四：判断是否满足CISB的四个必要条件。
+ 1. 源代码安全：原始代码在没有编译器优化时，在目标机器上没有安全问题。这里，原始代码试图安全地清零内存。如果编译器没有优化掉清零操作，那么它是安全的。注意：程序员使用了barrier()来防止优化，但根据提交信息，这仍然可能被优化。所以，如果没有优化，代码是安全的。
+ 2. 编译器引入：编译器优化在编译期间修改代码，创建了漏洞。这里，优化可能导致清零操作被消除，从而留下敏感数据在内存中。这正是在提交信息中描述的：llvm可以优化掉memset，即使有barrier()。
+ 3. 代码合规：原始代码不包含任何语言关键字的错误使用。barrier()是合法的，memzero_explicit的实现看起来符合C语言规范。程序员可能依赖了某些未定义行为？这里，使用屏障是常见的做法，但屏障的具体实现可能不足以阻止优化。但这不是代码中的错误关键字使用。注意：条件说“如果开发者利用未定义行为来实现某个特定目的或功能，则该未定义行为视为代码合规”。这里，程序员可能认为barrier()会阻止优化，但这不是未定义行为，而是编译器提供的特性。所以，原始代码是合规的。
+ 4. 编译器正确：编译器优化是形式正确的，即编译器不违反任何语言规范。编译器进行死存储消除是基于其对代码的分析，认为清零操作是死存储，并且屏障没有使用该内存，因此优化是符合语言规范的。提交信息中提到llvm将这种行为视为“不是bug”，说明编译器优化是符合规范的。
+
+ 步骤五：分类与漏洞模式匹配。
+ 如果以上四个条件均满足，则进一步判断属于哪一类CISB。这里，漏洞模式是：敏感数据清零操作被删除。这匹配OSpec1：敏感数据清零操作被删除（如 memset、memzero_explicit）。
+
+ 因此，这是一个CISB，属于OSpec类。
+
+ 注意：提交信息中提到，原始代码使用barrier()，但某些编译器（llvm）仍然可以消除清零操作。补丁将其改为barrier_data(s)，它明确将指针s作为输入，告诉编译器内联汇编可能会读取s指向的内存，从而阻止死存储消除。
+
+ 最终判断：是CISB，属于OSpec类。
+
+ 输出格式要求：最后一行输出判断结果，格式为：【是CISB - [ISpec/OSpec]类】 + 简要说明 或 【不是CISB】 + 原因。
+
+ 因此，我们输出：【是CISB - OSpec类】敏感数据清零操作可能被编译器作为死存储消除。
+
+ 注意：我们不需要输出推理步骤，只需最后一行。
+
+【最终结果】
+【是CISB - OSpec类】原始代码使用barrier()意图防止清零操作被编译器优化消除，但编译器假设内联汇编未访问敏感数据并进行死存储消除，导致安全意图失效，属于敏感数据清零操作被删除模式（OSpec1）。

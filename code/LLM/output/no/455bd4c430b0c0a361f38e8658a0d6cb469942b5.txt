@@ -1,0 +1,96 @@
+【Commit 原始内容】
+{
+  "id": "455bd4c430b0c0a361f38e8658a0d6cb469942b5",
+  "year": "2013",
+  "message": "ARM: 7668/1: fix memset-related crashes caused by recent GCC (4.7.2) optimizations\n\nRecent GCC versions (e.g. GCC-4.7.2) perform optimizations based on\nassumptions about the implementation of memset and similar functions.\nThe current ARM optimized memset code does not return the value of\nits first argument, as is usually expected from standard implementations.\n\nFor instance in the following function:\n\nvoid debug_mutex_lock_common(struct mutex *lock, struct mutex_waiter *waiter)\n{\n\tmemset(waiter, MUTEX_DEBUG_INIT, sizeof(*waiter));\n\twaiter->magic = waiter;\n\tINIT_LIST_HEAD(&waiter->list);\n}\n\ncompiled as:\n\n800554d0 <debug_mutex_lock_common>:\n800554d0:       e92d4008        push    {r3, lr}\n800554d4:       e1a00001        mov     r0, r1\n800554d8:       e3a02010        mov     r2, #16 ; 0x10\n800554dc:       e3a01011        mov     r1, #17 ; 0x11\n800554e0:       eb04426e        bl      80165ea0 <memset>\n800554e4:       e1a03000        mov     r3, r0\n800554e8:       e583000c        str     r0, [r3, #12]\n800554ec:       e5830000        str     r0, [r3]\n800554f0:       e5830004        str     r0, [r3, #4]\n800554f4:       e8bd8008        pop     {r3, pc}\n\nGCC assumes memset returns the value of pointer 'waiter' in register r0; causing\nregister/memory corruptions.\n\nThis patch fixes the return value of the assembly version of memset.\nIt adds a 'mov' instruction and merges an additional load+store into\nexisting load/store instructions.\nFor ease of review, here is a breakdown of the patch into 4 simple steps:\n\nStep 1\n======\nPerform the following substitutions:\nip -> r8, then\nr0 -> ip,\nand insert 'mov ip, r0' as the first statement of the function.\nAt this point, we have a memset() implementation returning the proper result,\nbut corrupting r8 on some paths (the ones that were using ip).\n\nStep 2\n======\nMake sure r8 is saved and restored when (! CALGN(1)+0) == 1:\n\nsave r8:\n-       str     lr, [sp, #-4]!\n+       stmfd   sp!, {r8, lr}\n\nand restore r8 on both exit paths:\n-       ldmeqfd sp!, {pc}               @ Now <64 bytes to go.\n+       ldmeqfd sp!, {r8, pc}           @ Now <64 bytes to go.\n(...)\n        tst     r2, #16\n        stmneia ip!, {r1, r3, r8, lr}\n-       ldr     lr, [sp], #4\n+       ldmfd   sp!, {r8, lr}\n\nStep 3\n======\nMake sure r8 is saved and restored when (! CALGN(1)+0) == 0:\n\nsave r8:\n-       stmfd   sp!, {r4-r7, lr}\n+       stmfd   sp!, {r4-r8, lr}\n\nand restore r8 on both exit paths:\n        bgt     3b\n-       ldmeqfd sp!, {r4-r7, pc}\n+       ldmeqfd sp!, {r4-r8, pc}\n(...)\n        tst     r2, #16\n        stmneia ip!, {r4-r7}\n-       ldmfd   sp!, {r4-r7, lr}\n+       ldmfd   sp!, {r4-r8, lr}\n\nStep 4\n======\nRewrite register list \"r4-r7, r8\" as \"r4-r8\".",
+  "patches": {
+    "arch/arm/lib/memset.S": "@@ -19,20 +19,24 @@\n 1:\tsubs\tr2, r2, #4\t\t@ 1 do we have enough\n \tblt\t5f\t\t\t@ 1 bytes to align with?\n \tcmp\tr3, #2\t\t\t@ 1\n-\tstrltb\tr1, [r0], #1\t\t@ 1\n-\tstrleb\tr1, [r0], #1\t\t@ 1\n-\tstrb\tr1, [r0], #1\t\t@ 1\n+\tstrltb\tr1, [ip], #1\t\t@ 1\n+\tstrleb\tr1, [ip], #1\t\t@ 1\n+\tstrb\tr1, [ip], #1\t\t@ 1\n \tadd\tr2, r2, r3\t\t@ 1 (r2 = r2 - (4 - r3))\n /*\n  * The pointer is now aligned and the length is adjusted.  Try doing the\n  * memset again.\n  */\n \n ENTRY(memset)\n-\tands\tr3, r0, #3\t\t@ 1 unaligned?\n+/*\n+ * Preserve the contents of r0 for the return value.\n+ */\n+\tmov\tip, r0\n+\tands\tr3, ip, #3\t\t@ 1 unaligned?\n \tbne\t1b\t\t\t@ 1\n /*\n- * we know that the pointer in r0 is aligned to a word boundary.\n+ * we know that the pointer in ip is aligned to a word boundary.\n  */\n \torr\tr1, r1, r1, lsl #8\n \torr\tr1, r1, r1, lsl #16\n@@ -43,29 +47,28 @@ ENTRY(memset)\n #if ! CALGN(1)+0\n \n /*\n- * We need an extra register for this loop - save the return address and\n- * use the LR\n+ * We need 2 extra registers for this loop - use r8 and the LR\n  */\n-\tstr\tlr, [sp, #-4]!\n-\tmov\tip, r1\n+\tstmfd\tsp!, {r8, lr}\n+\tmov\tr8, r1\n \tmov\tlr, r1\n \n 2:\tsubs\tr2, r2, #64\n-\tstmgeia\tr0!, {r1, r3, ip, lr}\t@ 64 bytes at a time.\n-\tstmgeia\tr0!, {r1, r3, ip, lr}\n-\tstmgeia\tr0!, {r1, r3, ip, lr}\n-\tstmgeia\tr0!, {r1, r3, ip, lr}\n+\tstmgeia\tip!, {r1, r3, r8, lr}\t@ 64 bytes at a time.\n+\tstmgeia\tip!, {r1, r3, r8, lr}\n+\tstmgeia\tip!, {r1, r3, r8, lr}\n+\tstmgeia\tip!, {r1, r3, r8, lr}\n \tbgt\t2b\n-\tldmeqfd\tsp!, {pc}\t\t@ Now <64 bytes to go.\n+\tldmeqfd\tsp!, {r8, pc}\t\t@ Now <64 bytes to go.\n /*\n  * No need to correct the count; we're only testing bits from now on\n  */\n \ttst\tr2, #32\n-\tstmneia\tr0!, {r1, r3, ip, lr}\n-\tstmneia\tr0!, {r1, r3, ip, lr}\n+\tstmneia\tip!, {r1, r3, r8, lr}\n+\tstmneia\tip!, {r1, r3, r8, lr}\n \ttst\tr2, #16\n-\tstmneia\tr0!, {r1, r3, ip, lr}\n-\tldr\tlr, [sp], #4\n+\tstmneia\tip!, {r1, r3, r8, lr}\n+\tldmfd\tsp!, {r8, lr}\n \n #else\n \n@@ -74,54 +77,54 @@ ENTRY(memset)\n  * whole cache lines at once.\n  */\n \n-\tstmfd\tsp!, {r4-r7, lr}\n+\tstmfd\tsp!, {r4-r8, lr}\n \tmov\tr4, r1\n \tmov\tr5, r1\n \tmov\tr6, r1\n \tmov\tr7, r1\n-\tmov\tip, r1\n+\tmov\tr8, r1\n \tmov\tlr, r1\n \n \tcmp\tr2, #96\n-\ttstgt\tr0, #31\n+\ttstgt\tip, #31\n \tble\t3f\n \n-\tand\tip, r0, #31\n-\trsb\tip, ip, #32\n-\tsub\tr2, r2, ip\n-\tmovs\tip, ip, lsl #(32 - 4)\n-\tstmcsia\tr0!, {r4, r5, r6, r7}\n-\tstmmiia\tr0!, {r4, r5}\n-\ttst\tip, #(1 << 30)\n-\tmov\tip, r1\n-\tstrne\tr1, [r0], #4\n+\tand\tr8, ip, #31\n+\trsb\tr8, r8, #32\n+\tsub\tr2, r2, r8\n+\tmovs\tr8, r8, lsl #(32 - 4)\n+\tstmcsia\tip!, {r4, r5, r6, r7}\n+\tstmmiia\tip!, {r4, r5}\n+\ttst\tr8, #(1 << 30)\n+\tmov\tr8, r1\n+\tstrne\tr1, [ip], #4\n \n 3:\tsubs\tr2, r2, #64\n-\tstmgeia\tr0!, {r1, r3-r7, ip, lr}\n-\tstmgeia\tr0!, {r1, r3-r7, ip, lr}\n+\tstmgeia\tip!, {r1, r3-r8, lr}\n+\tstmgeia\tip!, {r1, r3-r8, lr}\n \tbgt\t3b\n-\tldmeqfd\tsp!, {r4-r7, pc}\n+\tldmeqfd\tsp!, {r4-r8, pc}\n \n \ttst\tr2, #32\n-\tstmneia\tr0!, {r1, r3-r7, ip, lr}\n+\tstmneia\tip!, {r1, r3-r8, lr}\n \ttst\tr2, #16\n-\tstmneia\tr0!, {r4-r7}\n-\tldmfd\tsp!, {r4-r7, lr}\n+\tstmneia\tip!, {r4-r7}\n+\tldmfd\tsp!, {r4-r8, lr}\n \n #endif\n \n 4:\ttst\tr2, #8\n-\tstmneia\tr0!, {r1, r3}\n+\tstmneia\tip!, {r1, r3}\n \ttst\tr2, #4\n-\tstrne\tr1, [r0], #4\n+\tstrne\tr1, [ip], #4\n /*\n  * When we get here, we've got less than 4 bytes to zero.  We\n  * may have an unaligned pointer as well.\n  */\n 5:\ttst\tr2, #2\n-\tstrneb\tr1, [r0], #1\n-\tstrneb\tr1, [r0], #1\n+\tstrneb\tr1, [ip], #1\n+\tstrneb\tr1, [ip], #1\n \ttst\tr2, #1\n-\tstrneb\tr1, [r0], #1\n+\tstrneb\tr1, [ip], #1\n \tmov\tpc, lr\n ENDPROC(memset)"
+  }
+}
+
+【思维链】
+我们被问到："判断该补丁所修改的原始代码是否可能受到“编译器引入的安全漏洞（CISB）”的影响。" 我们需要分析补丁，看原始代码是否存在CISB。
+
+给出的补丁是ARM的memset汇编实现。根据提交信息，问题是：最近的GCC优化基于对memset实现的假设，特别是memset应该返回其第一个参数的值。而ARM的优化memset代码没有返回第一个参数的值，这导致GCC假设memset返回指针值（在寄存器r0中），从而引起寄存器/内存损坏。
+
+补丁修复了返回值：它添加了一个'mov ip, r0'指令，并修改了代码使用ip作为工作指针，最后返回r0（原始值）？实际上，看补丁，它添加了"mov ip, r0"来保存原始r0，然后整个函数使用ip作为存储指针，最后返回？最后一条指令是"mov pc, lr"，它不显式设置r0。在ARM中，返回值在r0中。原始代码在函数开头将r0用作指针，并递增它，但结束时r0已经指向了末尾？实际上，原始代码使用r0作为存储指针，并递增它，所以当函数返回时，r0指向了末尾，而不是起始地址。标准memset应该返回原始指针。所以原始代码没有返回正确的值。
+
+提交信息说："The current ARM optimized memset code does not return the value of its first argument, as is usually expected from standard implementations." 所以原始代码没有返回正确的值。这导致GCC优化时假设memset返回第一个参数，并利用这个返回值，从而引起问题。
+
+现在，我们需要判断原始代码是否存在CISB。按照步骤：
+
+步骤一：理解程序员的原始安全意图。
+原始代码是ARM的memset实现。它的安全意图是什么？memset用于内存写入，通常用于初始化内存或清零敏感数据。但在这个上下文中，它是通用的memset函数。程序员可能期望它正确实现标准memset语义：用给定的值填充内存区域，并返回指向该内存区域的指针。但原始代码没有返回正确的指针。然而，安全意图可能更具体？提交信息中提到一个示例：debug_mutex_lock_common中使用memset初始化waiter，然后设置magic等。GCC假设memset返回waiter指针，并用于后续的存储，导致损坏。所以程序员的意图是memset应该按照标准库行为工作，但原始实现没有做到。
+
+但就安全而言，不正确的返回值可能导致程序行为错误，可能引发崩溃或未定义行为。然而，我们关注的是“编译器引入的安全漏洞”。这里，编译器优化是基于对memset行为的假设，但原始代码不符合假设，所以优化导致错误。
+
+步骤二：识别编译器的假设与优化行为。
+编译器假设memset函数遵循标准库规范：返回第一个参数的值。基于这个假设，编译器可能进行优化：例如，在调用memset后，直接使用返回值作为原始指针，或者省略一些拷贝。在给出的汇编示例中，GCC假设memset返回waiter指针在r0中，然后使用r0进行后续存储（str r0, [r3, #12]等）。但实际上，memset没有返回正确的值，所以r0可能是一个错误的值，导致存储到错误地址。
+
+步骤三：分析“意图”与“假设”之间的冲突。
+程序员的意图是实现memset，但未能满足标准规范（返回值）。编译器的假设是memset符合标准规范。因此，冲突在于编译器基于规范做出优化，但实现不符合规范。
+
+步骤四：判断是否满足CISB的四个必要条件。
+我们需要逐一检查四个条件：
+1、源代码安全：原始代码在没有经过编译器优化时，在目标机器上没有安全问题。注意：如果开发者利用了未定义行为来实现某个特定目的或功能，视为该未定义行为并非源代码中的安全问题。这里，原始代码是一个memset实现，它不返回正确的值。这本身是一个bug，但它是源代码级的bug吗？在没有编译器优化时，直接调用这个memset，函数返回错误的值，这可能导致程序逻辑错误，但可能不会立即导致安全漏洞（如内存损坏）。然而，条件说的是“没有安全问题”，但返回值错误可能导致后续问题。但我们要区分：是源代码本身有问题，还是编译器优化引入了问题？原始代码不符合标准，但它是汇编实现，是库函数。当编译器进行优化时，它基于标准假设，所以优化后的代码会出错。但原始代码在没有优化时也会出错吗？实际上，无论优化与否，这个memset实现都不返回正确的值，所以调用它的代码可能依赖返回值或不依赖。如果调用代码不依赖返回值，那么原始代码可能工作正常。但提交信息显示，当GCC进行优化时，它假设返回值被使用，并因此生成错误的代码。所以，在没有优化时，编译器可能不会做这个假设，生成的代码可能不依赖返回值？但注意：示例中给出的汇编是优化后的编译结果，显示了问题。但原始代码本身是库代码，问题出现在调用方被编译时，编译器基于对memset行为的假设来优化调用方。所以，原始代码（memset实现）的bug在于不符合标准，但安全漏洞是由编译器优化引入的，因为如果编译器不进行这个假设优化，调用方可能仍然工作（尽管返回值错误，但调用方可能忽略返回值）。实际上，提交信息说“caused by recent GCC optimizations”，所以是优化引入了崩溃。
+
+我们需要仔细分析条件：
+条件1：源代码安全。原始代码（memset.S）在没有经过编译器优化时，在目标机器上没有安全问题。这里的“编译器优化”指的是编译memset.S本身的优化吗？还是调用方的优化？CISB通常指的是编译时优化改变了源代码的语义，引入了安全漏洞。但这里，漏洞出现在编译调用方代码时，编译器基于对memset行为的假设进行了优化，而memset的实现不符合假设。所以，原始代码（memset.S）本身可能没有安全漏洞（它只是一个不返回正确值的函数），但调用方的源代码可能安全（假设它正确使用memset），但编译器优化调用方时引入了错误。但CISB定义中，通常关注编译器对源代码的优化引入漏洞。这里，调用方的源代码是C代码，编译器编译它时进行了优化。但补丁修改的是库代码（memset.S），而不是调用方代码。所以，原始代码（被修改的代码）是memset.S。我们需要分析memset.S是否受到CISB影响？即，编译memset.S本身时，编译器是否引入了漏洞？但memset.S是汇编代码，通常汇编代码不会被编译器优化（汇编器只是翻译）。实际上，这里的问题不是编译memset.S时的优化，而是编译调用memset的C代码时的优化。提交信息说：“Recent GCC versions (e.g. GCC-4.7.2) perform optimizations based on assumptions about the implementation of memset”。所以，编译器在编译调用memset的代码时，基于对memset行为的假设进行了优化。这属于“编译器引入的安全漏洞”吗？根据CISB的定义，它关注编译器优化引入漏洞。这里，漏洞是由于编译器对库函数行为的假设导致的。这类似于“编译器基于标准库函数的语义进行优化，但用户提供的函数不符合标准，导致优化出错”。这算不算CISB？我们需要看四个条件。
+
+条件1：源代码安全。原始代码（memset.S）本身是否安全？从功能上说，它不返回正确的值，这是一个缺陷。但如果我们考虑“安全”，它可能导致调用方出错。但条件说“在没有经过编译器优化时”，这里的“编译器优化”可能指的是编译调用方代码时的优化？还是编译memset.S时的优化？通常，CISB考虑的是同一段源代码被编译器优化后引入漏洞。这里，漏洞表现在调用方，但根源在库函数不符合假设。但库函数是汇编代码，不是C代码，所以可能不符合CISB的典型场景？然而，CISB定义并不限定于C代码，汇编代码也可能被编译（汇编器不进行优化）。所以，可能条件不满足。
+
+我们再看CISB的四个条件，特别是条件2：“编译器优化在编译期间修改代码，创建了漏洞”。这里，编译器优化修改了调用方的代码（基于假设），创建了漏洞。但被修改的原始代码是memset.S，而编译器优化并没有修改memset.S，而是修改了调用方的代码。所以，条件2可能不直接满足，因为漏洞不是由于编译memset.S本身引入的。但是，如果我们把视角放在整个系统：调用方的C代码被编译时，编译器进行了优化，而这个优化是基于对memset行为的假设。由于memset实现不符合假设，优化导致了漏洞。那么，原始C代码是安全的（它只是调用了memset），编译器优化引入了漏洞。这符合CISB吗？但补丁修改的是memset.S，而不是调用方C代码。所以，问题出在库代码不符合约定，导致编译器优化调用方时出错。这通常被认为是“ABI”或“约定”问题，而不是典型的CISB。
+
+在CISB的案例中，有类似的情况：如果程序员写了一个自定义的函数，但编译器假设它符合标准库行为并进行优化，可能导致问题。但条件中，源代码安全要求原始代码（调用方）在没有优化时是安全的。在这个例子中，调用方代码在没有优化时可能是安全的，因为它调用memset，而memset即使返回值错误，如果调用方不使用返回值，也可能没事。但优化后，编译器可能基于返回值做了错误的事情。所以，这符合条件1。
+
+然而，我们需要判断的是补丁所修改的原始代码（即memset.S）是否可能受到CISB的影响。意思是：原始memset.S代码是否可能因为编译器优化而引入安全漏洞？严格来说，memset.S是汇编代码，它本身在编译（汇编）时不会受到编译器优化的影响（汇编器通常不进行优化）。但问题可能在于，当编译调用memset的C代码时，编译器会内联或优化memset？但这里memset是汇编函数，编译器不会内联它，但会基于对memset行为的假设优化调用点。所以，漏洞不是由于编译memset.S引入的，而是由于编译调用方引入的。因此，可能原始memset.S本身不直接受CISB影响，而是调用方受影响。但问题问的是“该补丁所修改的原始代码”，即memset.S，所以我们需要判断memset.S本身是否存在CISB？可能不是典型的CISB。
+
+我们可以从步骤五的分类中看到模式：ISpec1：安全检查被移除；ISpec2：顺序敏感的安全操作被重排；ISpec3：不安全指令被引入或替换。OSpec1：敏感数据清零操作被删除；OSpec2：执行时间保证被破坏；OSpec3：引入推测执行侧信道。这些都不直接匹配当前情况。当前情况是：memset没有返回正确值，导致编译器优化调用方时产生错误。这不属于这些模式。
+
+可能更好的分类是：这属于“编译器基于函数约定进行优化，但函数实现违反约定”。这算不算CISB？根据定义，CISB要求编译器优化是形式正确的（条件4），并且原始代码合规（条件3）。这里，原始代码（memset.S）不遵循标准约定，所以可能条件3“代码合规”不满足？条件3说：“原始代码不包含任何语言关键字的错误使用。（注意：如果开发者利用了未定义行为来实现某个特定目的或功能，则该未定义行为视为代码合规）”。这里，memset.S是汇编代码，没有语言关键字。但“代码合规”可能更广泛地指符合语言规范。对于汇编函数，它应该遵循ARM的ABI和C库约定。如果它不遵循，那么可能代码不合规。注意条件3的注释：如果开发者利用了未定义行为来实现某个特定目的或功能，则该未定义行为视为代码合规。但这里，memset.S没有利用未定义行为，它只是没有返回值，这是一个明确的bug，不符合标准。所以，可能条件3不满足。
+
+因此，可能不是CISB。
+
+让我们更系统地推理：
+
+步骤一：程序员的原始安全意图。
+程序员编写ARM memset汇编代码，意图是实现一个高效的memset函数，用于填充内存。安全意图可能是确保内存被正确填充，没有泄露或溢出。但返回值也是函数约定的一部分，虽然不是直接的安全属性，但错误返回值可能导致调用方行为异常。
+
+步骤二：编译器的假设与优化行为。
+编译器（GCC）假设memset遵循ISO C标准，即返回第一个参数的值。基于这个假设，编译器在编译调用memset的代码时，可能会重用第一个参数寄存器，或者省略一些拷贝，或者直接使用返回值作为原始指针。
+
+步骤三：冲突。
+程序员的memset实现没有返回正确的值，违反了标准。编译器的假设是基于标准的。因此，冲突在于实现不符合标准，导致优化后的调用方代码行为错误。
+
+步骤四：判断四个条件。
+针对原始代码（memset.S）：
+1、源代码安全：原始memset.S代码在没有经过编译器优化时，在目标机器上没有安全问题。注意：这里“编译器优化”可能指编译memset.S时的优化？但memset.S是汇编代码，通常用汇编器翻译，不会进行优化。所以，如果我们直接运行memset函数，它只是填充内存，但返回错误值。返回错误值本身可能不会直接导致安全漏洞（如内存损坏），但可能导致逻辑错误。但条件1说“没有安全问题”，可能意味着没有内存安全等问题。然而，返回值错误可能导致调用方存储到错误地址（如果调用方依赖返回值），但那是调用方的问题。所以，可能条件1满足，如果认为memset.S本身只是填充内存，没有安全缺陷。
+
+2、编译器引入：编译器优化在编译期间修改代码，创建了漏洞。这里，编译器优化修改的是调用memset的代码，而不是memset.S本身。所以，对于memset.S来说，编译器没有修改它。因此，条件2可能不满足。
+
+3、代码合规：原始代码不包含任何语言关键字的错误使用。memset.S是汇编代码，没有C语言关键字。但它是否合规？它应该遵循ARM EABI和C库函数的约定。它没有返回正确的值，这违反了约定。所以，可能不合规。注意注释：如果开发者利用了未定义行为来实现某个特定目的或功能，则该未定义行为视为代码合规。但这里没有利用未定义行为，而是明确错误。所以，条件3不满足。
+
+4、编译器正确：编译器优化是形式正确的，即编译器不违反任何语言规范。编译器基于标准假设进行优化，如果标准规定memset返回第一个参数，那么编译器优化是合理的。所以条件4可能满足。
+
+由于条件2和3可能不满足，所以不是CISB。
+
+步骤五：分类。如果不满足，则不需要分类。
+
+因此，判断结果应为“不是CISB”。
+
+但让我们确认一下：提交信息说“fix memset-related crashes caused by recent GCC optimizations”，所以它是修复由GCC优化引起的崩溃。这听起来像是编译器优化引入的问题。然而，根本原因是memset实现不符合标准。所以，如果memset实现符合标准，编译器优化就不会引起问题。因此，这更像是一个库函数bug，而不是典型的CISB。
+
+在CISB的典型案例中，通常是源代码本身符合规范，但编译器优化错误地改变了语义。这里，源代码（memset.S）不符合规范。所以，不是CISB。
+
+输出格式：最后一行直接输出判断结果。
+
+所以，输出：【不是CISB】+原因。
+
+原因可以是：不满足条件2（编译器未修改原始代码）和/或条件3（原始代码不合规）。
+
+选择简要说明。
+
+我将输出：【不是CISB】原始代码不合规（未遵循标准库函数约定），且漏洞非由编译该原始代码时的优化引入。
+
+【最终结果】
+【不是CISB】原始代码（memset汇编实现）未遵循标准库函数约定（应返回第一个参数），导致编译器基于正确假设优化调用方时代码出错；漏洞非由编译该汇编代码时的优化引入，且原始代码不合规（违反ABI约定），不满足CISB条件2和条件3。

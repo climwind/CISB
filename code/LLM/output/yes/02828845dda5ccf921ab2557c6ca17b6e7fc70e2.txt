@@ -1,0 +1,83 @@
+【Commit 原始内容】
+{
+  "id": "02828845dda5ccf921ab2557c6ca17b6e7fc70e2",
+  "year": "2006",
+  "message": "[ARM] 4016/1: prefetch macro is wrong wrt gcc's \"delete-null-pointer-checks\"\n optimization\n\nThe gcc manual says:\n\n|`-fdelete-null-pointer-checks'\n|     Use global dataflow analysis to identify and eliminate useless\n|     checks for null pointers.  The compiler assumes that dereferencing\n|     a null pointer would have halted the program.  If a pointer is\n|     checked after it has already been dereferenced, it cannot be null.\n|     Enabled at levels `-O2', `-O3', `-Os'.\n\nNow the problem can be seen with this test case:\n\n#include <linux/prefetch.h>\nextern void bar(char *x);\nvoid foo(char *x)\n{\n\tprefetch(x);\n\tif (x)\n\t\tbar(x);\n}\n\nBecause the constraint to the inline asm used in the prefetch() macro is\na memory operand, gcc assumes that the asm code does dereference the\npointer and the delete-null-pointer-checks optimization kicks in.\nInspection of generated assembly for the above example shows that bar()\nis indeed called unconditionally without any test on the value of x.\n\nOf course in the prefetch case there is no real dereference and it\ncannot be assumed that a null pointer would have been caught at that\npoint. This causes kernel oopses with constructs like\nhlist_for_each_entry() where the list's 'next' content is prefetched\nbefore the pointer is tested against NULL, and only when gcc feels like\napplying this optimization which doesn't happen all the time with more\ncomplex code.\n\nIt appears that the way to prevent delete-null-pointer-checks\noptimization to occur in this case is to make prefetch() into a static\ninline function instead of a macro. At least this is what is done on\nx86_64 where a similar inline asm memory operand is used (I presume they\nwould have seen the same problem if it didn't work) and resulting code\nfor the above example confirms that.\n\nAn alternative would consist of replacing the memory operand by a\nregister operand containing the pointer, and use the addressing mode\nexplicitly in the asm template. But that would be less optimal than an\noffsettable memory reference.",
+  "patches": {
+    "include/asm-arm/processor.h": "@@ -103,14 +103,14 @@ extern int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags);\n #if __LINUX_ARM_ARCH__ >= 5\n \n #define ARCH_HAS_PREFETCH\n-#define prefetch(ptr)\t\t\t\t\\\n-\t({\t\t\t\t\t\\\n-\t\t__asm__ __volatile__(\t\t\\\n-\t\t\"pld\\t%0\"\t\t\t\\\n-\t\t:\t\t\t\t\\\n-\t\t: \"o\" (*(char *)(ptr))\t\t\\\n-\t\t: \"cc\");\t\t\t\\\n-\t})\n+static inline void prefetch(const void *ptr)\n+{\n+\t__asm__ __volatile__(\n+\t\t\"pld\\t%0\"\n+\t\t:\n+\t\t: \"o\" (*(char *)ptr)\n+\t\t: \"cc\");\n+}\n \n #define ARCH_HAS_PREFETCHW\n #define prefetchw(ptr)\tprefetch(ptr)"
+  }
+}
+
+【思维链】
+首先，任务是分析给定的补丁，判断原始代码是否可能受到“编译器引入的安全漏洞（CISB）”的影响。补丁是关于ARM架构上的prefetch宏的修改。
+
+补丁信息：
+- ID: 02828845dda5ccf921ab2557c6ca17b6e7fc70e2
+- 年份: 2006
+- 消息: 描述了问题：prefetch宏在gcc的“delete-null-pointer-checks”优化下出错。gcc优化会消除空指针检查，因为内联汇编使用了内存操作数，gcc假设指针被解引用，但实际上prefetch指令并不真正解引用指针。这导致内核oopses，例如在hlist_for_each_entry()中，指针在测试NULL之前被预取。
+- 修改内容：将prefetch从宏改为静态内联函数。原始代码是宏，使用内联汇编；新代码是静态内联函数，但汇编部分基本不变。
+
+现在，按照五个步骤进行推理：
+
+**步骤一：理解程序员的原始安全意图。**
+
+原始代码是一个宏 `prefetch(ptr)`，使用内联汇编执行PLD（预加载数据）指令。程序员的意图是预取数据以提高性能，但安全目标是确保在指针可能为NULL时不会导致问题。在上下文中，例如`hlist_for_each_entry()`，指针在预取后会被检查是否为NULL。程序员期望预取指令不会影响空指针检查的逻辑，即如果指针为NULL，预取应该无害，且后续检查应捕获NULL并避免解引用。
+
+安全意图：防止空指针解引用，确保即使预取了NULL指针，也不会导致崩溃或安全漏洞。程序员依赖预取指令不真正解引用内存，因此空指针检查应保持有效。
+
+**步骤二：识别编译器的假设与优化行为。**
+
+编译器（gcc）假设：根据gcc手册，`-fdelete-null-pointer-checks`优化使用全局数据流分析来消除无用的空指针检查。编译器假设解引用空指针会停止程序，因此如果指针在检查前已经被解引用，编译器认为它不可能是NULL，从而移除检查。
+
+优化行为：在`-O2`、`-O3`、`-Os`级别启用此优化。对于原始代码，内联汇编使用了内存操作数 `"o" (*(char *)(ptr))`，这告诉编译器汇编代码会访问指针指向的内存。编译器因此假设指针被解引用，从而触发优化，移除后续的NULL检查。
+
+**步骤三：分析“意图”与“假设”之间的冲突。**
+
+程序员的意图：预取指令不真正解引用指针，因此即使指针为NULL，预取也应安全，且后续NULL检查应生效。
+
+编译器的假设：由于内联汇编使用内存操作数，编译器假设指针被解引用，因此认为指针不可能为NULL，从而优化掉后续的NULL检查。
+
+冲突点：程序员期望预取不改变指针的可空性假设，但编译器基于内存操作数错误地假设指针被解引用，导致移除必要的安全检查。这破坏了程序员的原始安全意图，可能导致空指针被使用而不被检查。
+
+**步骤四：判断是否满足CISB的四个必要条件。**
+
+1. **源代码安全**：原始代码在没有编译器优化时，在目标机器上没有安全问题。prefetch指令在ARM上不会导致空指针解引用崩溃；它只是预取，即使地址为NULL，也不会引发异常（根据描述，prefetch没有真正解引用）。后续的NULL检查会正常工作。因此，在没有优化的情况下，代码是安全的。注意：开发者利用了预取指令的特性，但没有使用未定义行为；预取NULL可能不是未定义，但在这个上下文中，它是安全的。
+
+2. **编译器引入**：编译器优化在编译期间修改代码，创建了漏洞。是的，优化移除了NULL检查，导致bar()被无条件调用，即使x为NULL。这引入了漏洞。
+
+3. **代码合规**：原始代码不包含任何语言关键字的错误使用。内联汇编使用 `"o"` 约束，这是合法的。开发者没有故意利用未定义行为；他们只是使用预取宏，但编译器错误地推断了解引用。代码是合规的。
+
+4. **编译器正确**：编译器优化是形式正确的，即编译器不违反任何语言规范。根据gcc手册，优化是基于假设解引用空指针会停止程序。在内联汇编中，使用内存操作数确实表示内存访问，所以编译器假设解引用是合理的。因此，优化本身符合语言规范，但导致了安全漏洞，因为预取指令实际上不解引用。
+
+所有四个条件似乎都满足：
+- 源代码安全：是。
+- 编译器引入：是。
+- 代码合规：是。
+- 编译器正确：编译器优化基于其假设是正确的，但假设与实际情况不符。
+
+**步骤五：分类与漏洞模式匹配。**
+
+如果满足所有条件，则判断属于哪一类CISB。
+
+- A. 隐式规范类（ISpec）：
+  - ISpec1：安全检查被移除（如空指针检查、边界检查、整数溢出检查）。这里，NULL检查被移除，匹配ISpec1。
+  - ISpec2：顺序敏感的安全操作被重排。不直接匹配。
+  - ISpec3：不安全指令被引入或替换。不直接匹配。
+
+- B. 正交规范类（OSpec）：
+  - OSpec1：敏感数据清零操作被删除。不匹配。
+  - OSpec2：执行时间保证被破坏。不匹配。
+  - OSpec3：引入推测执行侧信道。不匹配。
+
+因此，属于ISpec1：安全检查被移除。
+
+输出格式：最后一行输出判断结果。
+
+所以，结果是：是CISB - ISpec类，具体是ISpec1，因为安全检查（空指针检查）被编译器优化移除。
+
+简要说明：编译器基于内联汇编的内存操作数假设指针被解引用，从而移除了后续的NULL检查，而预取指令实际上并不解引用指针，导致安全漏洞。
+
+最终输出：
+
+【最终结果】
+【是CISB - ISpec类】编译器基于内联汇编的内存操作数假设指针被解引用，从而优化移除了后续的空指针检查，但预取指令实际不解引用指针，导致安全检查被消除。

@@ -1,0 +1,58 @@
+【Commit 原始内容】
+{
+  "id": "dc5d17a3c39b06aef866afca19245a9cfb533a79",
+  "year": "2021",
+  "message": "md: Set prev_flush_start and flush_bio in an atomic way\n\nOne customer reports a crash problem which causes by flush request. It\ntriggers a warning before crash.\n\n        /* new request after previous flush is completed */\n        if (ktime_after(req_start, mddev->prev_flush_start)) {\n                WARN_ON(mddev->flush_bio);\n                mddev->flush_bio = bio;\n                bio = NULL;\n        }\n\nThe WARN_ON is triggered. We use spin lock to protect prev_flush_start and\nflush_bio in md_flush_request. But there is no lock protection in\nmd_submit_flush_data. It can set flush_bio to NULL first because of\ncompiler reordering write instructions.\n\nFor example, flush bio1 sets flush bio to NULL first in\nmd_submit_flush_data. An interrupt or vmware causing an extended stall\nhappen between updating flush_bio and prev_flush_start. Because flush_bio\nis NULL, flush bio2 can get the lock and submit to underlayer disks. Then\nflush bio1 updates prev_flush_start after the interrupt or extended stall.\n\nThen flush bio3 enters in md_flush_request. The start time req_start is\nbehind prev_flush_start. The flush_bio is not NULL(flush bio2 hasn't\nfinished). So it can trigger the WARN_ON now. Then it calls INIT_WORK\nagain. INIT_WORK() will re-initialize the list pointers in the\nwork_struct, which then can result in a corrupted work list and the\nwork_struct queued a second time. With the work list corrupted, it can\nlead in invalid work items being used and cause a crash in\nprocess_one_work.\n\nWe need to make sure only one flush bio can be handled at one same time.\nSo add spin lock in md_submit_flush_data to protect prev_flush_start and\nflush_bio in an atomic way.",
+  "patches": {
+    "drivers/md/md.c": "@@ -639,8 +639,10 @@ static void md_submit_flush_data(struct work_struct *ws)\n \t * could wait for this and below md_handle_request could wait for those\n \t * bios because of suspend check\n \t */\n+\tspin_lock_irq(&mddev->lock);\n \tmddev->prev_flush_start = mddev->start_flush;\n \tmddev->flush_bio = NULL;\n+\tspin_unlock_irq(&mddev->lock);\n \twake_up(&mddev->sb_wait);\n \n \tif (bio->bi_iter.bi_size == 0) {"
+  }
+}
+
+【思维链】
+我们被提供了一个补丁的JSON描述。补丁信息包括commit message和修改内容。我们需要分析原始代码（即补丁修改前的代码）是否存在CISB。
+
+ 步骤一：理解程序员的原始安全意图。
+ 根据commit message，原始代码试图确保在md（多设备）驱动中，flush请求的串行化。具体来说，在md_flush_request函数中，通过检查req_start和mddev->prev_flush_start的时间顺序，并使用WARN_ON来确保只有一个flush bio在同时被处理。然而，在md_submit_flush_data函数中，对prev_flush_start和flush_bio的写操作没有加锁保护，导致编译器可能重排这两个写操作，从而出现竞争条件：flush_bio先被置为NULL，然后被其他flush bio占用，而prev_flush_start尚未更新，导致后续flush bio错误地认为前一个flush已经完成，从而触发WARN_ON并可能引发崩溃。
+
+ 所以，程序员的原始安全意图是：确保prev_flush_start和flush_bio这两个变量的更新是原子的，即要么都更新，要么都不更新，并且顺序要正确（先更新prev_flush_start，再清空flush_bio？实际上，在md_submit_flush_data中，是先设置prev_flush_start，然后设置flush_bio为NULL。但是，由于没有锁，编译器可能重排这两个写操作，导致flush_bio先被置为NULL，然后prev_flush_start后更新。这样，在两个写操作之间，另一个flush请求可能插入并错误地认为前一个flush已经完成（因为flush_bio为NULL），但实际上prev_flush_start还没有更新，导致时间检查错误。
+
+ 步骤二：识别编译器的假设与优化行为。
+ 编译器假设没有数据竞争（即多个线程同时访问同一内存位置且至少有一个是写操作时，没有同步原语），因此它可能对内存访问进行重排以优化性能。具体来说，编译器可能会重排两个独立的写操作，只要不改变单线程下的程序语义。在这里，两个写操作分别是对两个全局变量的写操作，且没有显式的内存屏障或锁，编译器可能认为它们可以重排。
+
+ 步骤三：分析“意图”与“假设”之间的冲突。
+ 程序员的意图是这两个写操作应该原子地更新，并且顺序应该是先更新prev_flush_start，再清空flush_bio（这样，在清空flush_bio之前，prev_flush_start已经更新，其他flush请求看到prev_flush_start更新后，即使flush_bio为NULL，也能知道前一个flush已经完成）。但是，编译器的假设是这两个写操作可以重排，因为它们在单线程中执行（md_submit_flush_data是在一个work_struct中执行，但可能被中断打断，或者多核上同时有多个flush请求？实际上，commit message提到中断或vmware导致的扩展停顿可能发生在两个写操作之间）。编译器可能将这两个写操作重排，导致flush_bio先被置为NULL，然后更新prev_flush_start。这样，在中间时刻，另一个flush请求可能看到flush_bio为NULL，但prev_flush_start还是旧值，从而错误地认为前一个flush已经完成，进而提交自己的flush bio，导致两个flush bio同时存在。
+
+ 步骤四：判断是否满足CISB的四个必要条件。
+ 1. 源代码安全：在没有编译器优化重排的情况下，原始代码在目标机器上是否安全？注意，这里的问题不是未定义行为，而是由于缺乏同步导致的数据竞争。但是，commit message指出，即使没有编译器重排，由于中断或vmware的扩展停顿，也可能导致两个写操作之间插入其他请求，从而出现竞争条件。但问题问的是“编译器引入的安全漏洞”，所以我们关注的是编译器重排是否引入了漏洞。在没有编译器重排的情况下，由于中断或调度，两个写操作之间仍然可能被其他请求插入，所以原始代码本身也存在并发安全问题。但是，commit message明确指出“It can set flush_bio to NULL first because of compiler reordering write instructions”，即编译器重排加剧了这个问题，或者说是导致问题出现的原因之一。实际上，即使没有编译器重排，由于这两个写操作不是原子的，也可能被中断打断，所以原始代码本身就有漏洞。但是，我们需要判断的是编译器是否引入了漏洞，即如果没有编译器重排，原始代码是否安全？从commit message看，原始代码在单核上可能由于中断而出现竞争，但在多核上，即使没有中断，由于两个写操作可能被重排（编译时或运行时内存重排），也会出现问题。因此，原始代码本身不安全，因为缺少同步。所以，条件1可能不满足。
+
+ 然而，我们需要注意的是，条件1说的是“原始代码在没有经过编译器优化时，在目标机器上没有安全问题”。这里的目标机器可能是多核机器，且可能发生内存重排（硬件重排）。但条件1强调的是“没有经过编译器优化”，即只考虑编译器没有进行优化重排，但硬件重排仍然可能存在。所以，即使没有编译器重排，硬件也可能重排这两个写操作，导致问题。因此，原始代码即使在没有编译器优化的情况下，在目标机器上（多核，支持内存重排）也可能不安全。所以，条件1可能不满足。
+
+ 但是，让我们仔细看条件1的括号说明：“如果开发者利用未定义行为来实现某个特定目的或功能，视为该未定义行为并非源代码中的安全问题”。这里并没有利用未定义行为，而是缺乏同步导致的竞争条件。所以，原始代码本身就有安全问题（即使没有编译器优化，硬件重排也可能导致问题）。因此，条件1不满足。
+
+ 步骤五：分类与漏洞模式匹配。
+ 由于条件1可能不满足，我们不需要进行步骤五。但是，我们也可以继续分析，看看如果条件1满足（假设在单核且没有硬件重排的机器上，原始代码可能是安全的，因为中断不会导致并发，只是顺序执行，那么两个写操作之间插入其他请求的情况只有在中断发生时，而中断处理可能不会提交新的flush请求？但commit message提到中断或vmware导致扩展停顿，然后另一个flush请求可能插入，这即使在单核上也可能发生，因为中断处理程序可能提交新的flush请求？这里需要更仔细的分析。但根据commit message，原始代码在单核上也可能因为中断而出现问题，所以原始代码在目标机器上可能不安全。
+
+ 因此，判断结果：不是CISB，因为原始代码本身就有安全问题（缺乏同步，即使没有编译器优化，也可能由于中断或硬件重排导致竞争条件）。
+
+ 输出格式要求：最后一行直接输出判断结果。
+
+ 所以，我们输出：【不是CISB】因为原始代码在没有编译器优化时也存在安全问题（缺乏同步导致的数据竞争）。
+
+ 注意：我们不需要输出步骤，只需输出最后一行。
+
+ 但是，我们需要确保分析是否满足四个条件。我们逐一检查：
+
+ 1. 源代码安全：原始代码在没有编译器优化时，在目标机器上是否存在安全问题？是的，因为即使没有编译器重排，由于中断或硬件重排，两个写操作之间也可能被其他请求插入，导致竞争条件。所以不满足。
+
+ 2. 编译器引入：编译器优化（重排）确实可能加剧这个问题，但即使没有编译器优化，问题也可能存在。所以，漏洞不是由编译器引入的，而是原始代码缺少同步。
+
+ 3. 代码合规：原始代码没有使用任何语言关键字的错误使用，也没有未定义行为（数据竞争是未定义行为，但这里不是开发者有意利用的，而是缺乏同步导致的）。所以，代码可能合规，但条件1不满足，所以不需要继续。
+
+ 4. 编译器正确：编译器重排是形式正确的，因为这两个写操作没有依赖关系，且没有内存屏障，编译器可以重排。
+
+ 因此，由于条件1不满足，所以不是CISB。
+
+ 最后，我们输出：
+
+【最终结果】
+【不是CISB】原始代码在没有编译器优化时已存在并发安全问题（缺乏同步导致数据竞争），不满足CISB条件1（源代码安全）。

@@ -1,0 +1,83 @@
+【Commit 原始内容】
+{
+  "id": "613317bd212c585c20796c10afe5daaa95d4b0a1",
+  "year": "2016",
+  "message": "EVM: Use crypto_memneq() for digest comparisons\n\nThis patch fixes vulnerability CVE-2016-2085.  The problem exists\nbecause the vm_verify_hmac() function includes a use of memcmp().\nUnfortunately, this allows timing side channel attacks; specifically\na MAC forgery complexity drop from 2^128 to 2^12.  This patch changes\nthe memcmp() to the cryptographically safe crypto_memneq().",
+  "patches": {
+    "security/integrity/evm/evm_main.c": "@@ -23,6 +23,7 @@\n #include <linux/integrity.h>\n #include <linux/evm.h>\n #include <crypto/hash.h>\n+#include <crypto/algapi.h>\n #include \"evm.h\"\n \n int evm_initialized;\n@@ -148,7 +149,7 @@ static enum integrity_status evm_verify_hmac(struct dentry *dentry,\n \t\t\t\t   xattr_value_len, calc.digest);\n \t\tif (rc)\n \t\t\tbreak;\n-\t\trc = memcmp(xattr_data->digest, calc.digest,\n+\t\trc = crypto_memneq(xattr_data->digest, calc.digest,\n \t\t\t    sizeof(calc.digest));\n \t\tif (rc)\n \t\t\trc = -EINVAL;"
+  }
+}
+
+【思维链】
+首先，任务是基于提供的补丁分析原始代码是否可能受到“编译器引入的安全漏洞（CISB）”的影响。补丁是JSON格式的，描述了从一个commit中修改的内容：原始代码使用了memcmp()，补丁将其改为crypto_memneq()。补丁的消息说这是修复CVE-2016-2085，漏洞是定时侧信道攻击，因为memcmp()允许定时攻击，导致MAC伪造复杂度降低。
+
+现在，我需要按照五个步骤进行推理。
+
+**步骤一：理解程序员的原始安全意图。**
+
+原始代码中使用了memcmp()来比较两个摘要（digest）：xattr_data->digest 和 calc.digest。程序员的意图是验证HMAC的正确性，确保数据完整性。原始代码试图通过比较这两个摘要来检查它们是否相等，如果不相等，则返回错误。安全目标是防止MAC伪造，确保只有正确的MAC才被接受。但原始代码使用了memcmp()，这可能导致定时侧信道攻击，因为memcmp()通常会在第一个不匹配的字节处停止，泄露信息。
+
+补丁的消息说：“this allows timing side channel attacks; specifically a MAC forgery complexity drop from 2^128 to 2^12.” 所以，原始代码的意图是实现一个安全的比较，但memcmp()不是恒定时间的，因此未达到安全属性：恒定时间执行以防止定时攻击。
+
+所以，程序员的原始安全意图是确保数据完整性，但更具体地说，需要恒定时间比较来防止定时侧信道攻击。
+
+**步骤二：识别编译器的假设与优化行为。**
+
+编译器编译原始代码时，基于语言规范（这里是C语言），编译器可能会假设memcmp()是一个标准库函数，其行为符合C标准。memcmp()的比较是逐字节进行的，并在发现不匹配时停止。编译器可能不会假设memcmp()是恒定时间的，因为它可以优化调用或内联实现。
+
+编译器可能执行的优化包括：函数内联、死代码消除、指令重排等。例如，如果memcmp()被内联，编译器可能会生成代码在第一个不匹配字节处分支出来，这正好是定时攻击的根源。
+
+**步骤三：分析“意图”与“假设”之间的冲突。**
+
+程序员的意图是进行安全比较，但使用了memcmp()，这依赖于逐字节比较并在不匹配时停止。编译器假设memcmp()的行为是标准的，并可能优化代码以反映这种非恒定时间行为。冲突在于：程序员期望比较是安全的（即不泄露定时信息），但memcmp()的实现本质上是可变的，编译器可能会利用这一点进行优化，如提前退出循环，从而引入定时侧信道。
+
+实际上，这个漏洞不是编译器引入的，而是代码本身使用了不安全的函数。补丁将其改为crypto_memneq()，这是一个恒定时间比较函数。
+
+**步骤四：判断是否满足CISB的四个必要条件。**
+
+CISB定义：编译器引入的安全漏洞。四个条件：
+
+1. **源代码安全**：原始代码在没有编译器优化时，在目标机器上没有安全问题。但在这里，原始代码使用了memcmp()，即使没有编译器优化，memcmp()本身就可能不是恒定时间的，因为它依赖于库实现。所以，即使没有编译器优化，memcmp()也可能有定时侧信道。因此，原始代码本身就有安全问题，不是编译器引入的。
+
+   - 注意条件1说：“如果开发者利用未定义行为来实现某个特定目的或功能，视为该未定义行为并非源代码中的安全问题”。但这里，memcmp()的使用不是未定义行为；它是定义良好的，但功能上不是恒定时间的。开发者没有利用未定义行为；他们只是用了一个不安全的函数。
+
+   - 条件1要求原始代码在没有优化时是安全的。memcmp()即使在未优化代码中，也可能有定时问题，因为它通常实现为在循环中比较字节并在不匹配时返回。所以，这可能不满足条件1。
+
+2. **编译器引入**：漏洞是否由编译器优化创建？在这个案例中，漏洞是memcmp()的定时行为，这不是编译器优化引入的；它是函数本身的属性。编译器可能内联或优化memcmp()，但即使没有优化，memcmp()的实现也可能有定时变化。
+
+   补丁消息说：“this allows timing side channel attacks”，指的是memcmp()的使用本身允许攻击，没有提到编译器优化。所以，漏洞是代码逻辑问题，而不是编译器引入的。
+
+3. **代码合规**：原始代码不包含任何语言关键字的错误使用。memcmp()的使用是合规的，它符合C标准。
+
+4. **编译器正确**：编译器优化是形式正确的，即不违反语言规范。如果编译器优化了memcmp()调用，它可能是在规范内进行的。
+
+关键点：漏洞是memcmp()的使用导致的定时侧信道，这不是编译器引入的；它是代码设计缺陷。CISB要求漏洞是由编译器优化创建的。
+
+**步骤五：分类与漏洞模式匹配。**
+
+如果四个条件都满足，才进一步分类。但这里，条件1和2可能不满足。
+
+- 条件1：原始代码在没有优化时就有安全问题（memcmp()的定时侧信道），所以不满足。
+
+- 条件2：漏洞不是编译器引入的；它存在于原始代码中，无论编译器如何优化。
+
+因此，这不是CISB。
+
+但让我仔细检查步骤四的说明：“注意：如果开发者利用未定义行为来实现某个特定目的或功能，则该未定义行为不能作为判断源代码不存在CISB的依据”。这里没有未定义行为；memcmp()是定义行为。
+
+此外，补丁是为了修复定时侧信道，这是代码逻辑问题，不是编译器优化问题。
+
+**推理结论：**
+
+原始代码的安全意图是进行比较，但使用了不安全的memcmp()函数。编译器可能优化它，但漏洞根源是函数选择不当，而不是编译器优化引入的新漏洞。
+
+所以，不满足CISB的条件。
+
+最后输出格式：直接输出判断结果，例如“【不是CISB】 + 原因”。
+
+原因：不满足条件1（原始代码本身有安全问题）或条件2（漏洞不是编译器引入）。
+
+具体来说，原因可以是：漏洞是由于使用了非恒定时间的memcmp()函数，这不是编译器优化引入的。
+
+【最终结果】
+【不是CISB】原始代码使用memcmp()进行摘要比较，其非恒定时间特性本身存在定时侧信道漏洞，这不是由编译器优化引入的；即使没有编译器优化，memcmp()的实现也可能泄露信息，因此不满足CISB的条件1（源代码安全）和条件2（编译器引入）。

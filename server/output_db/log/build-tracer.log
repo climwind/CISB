@@ -1,0 +1,25 @@
+[T 11:48:53 37716] Initializing tracer.
+[T 11:48:53 37716] Initializing tags.
+[T 11:48:53 37716] CodeQL CLI version 2.25.1
+[T 11:48:53 37716] Initializing tracer.
+[T 11:48:53 37716] Initializing tags.
+[T 11:48:53 37716] Allocated ID A37C177F00009354_0000000000000001 (parent )
+[T 11:48:53 37716] ==== Candidate to intercept: C:\Tools\codeql\tools\win64\runner.exe (17928) ====
+[T 11:48:53 37716] Executing the following tracer actions:
+[T 11:48:53 37716] Tracer actions:
+[T 11:48:53 37716] pre_invocations(0)
+[T 11:48:53 37716] post_invocations(0)
+[T 11:48:53 37716] trace_languages(1): [cpp]
+[T 11:48:53 17928] Initializing tracer.
+[T 11:48:53 17928] Initializing tags.
+[T 11:48:53 17928] ID set to A37C177F00009354_0000000000000001 (parent root)
+[T 11:48:53 17928] Allocated ID F4FF459800004608_0000000000000001 (parent A37C177F00009354_0000000000000001)
+[T 11:48:53 17928] ==== Candidate to intercept: C:\Windows\System32\cmd.exe (24260) ====
+[T 11:48:53 17928] Executing the following tracer actions:
+[T 11:48:53 17928] Tracer actions:
+[T 11:48:53 17928] pre_invocations(0)
+[T 11:48:53 17928] post_invocations(0)
+[T 11:48:53 17928] trace_languages(1): [cpp]
+[T 11:48:53 24260] Initializing tracer.
+[T 11:48:53 24260] Initializing tags.
+[T 11:48:53 24260] ID set to F4FF459800004608_0000000000000001 (parent A37C177F00009354_0000000000000001)

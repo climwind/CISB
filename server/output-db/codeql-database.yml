@@ -1,0 +1,45 @@
+---
+sourceLocationPrefix: E:\graduate sheji\pythoncode\server
+baselineLinesOfCode: 7
+unicodeNewlines: false
+columnKind: utf8
+primaryLanguage: cpp
+inProgress:
+  primaryLanguage: cpp
+  installedExtractors:
+    actions:
+     - C:/Tools/codeql/actions
+    cpp:
+     - C:/Tools/codeql/cpp
+    csharp:
+     - C:/Tools/codeql/csharp
+    csv:
+     - C:/Tools/codeql/csv
+    go:
+     - C:/Tools/codeql/go
+    html:
+     - C:/Tools/codeql/html
+    java:
+     - C:/Tools/codeql/java
+    javascript:
+     - C:/Tools/codeql/javascript
+    properties:
+     - C:/Tools/codeql/properties
+    python:
+     - C:/Tools/codeql/python
+    ruby:
+     - C:/Tools/codeql/ruby
+    rust:
+     - C:/Tools/codeql/rust
+    swift:
+     - C:/Tools/codeql/swift
+    xml:
+     - C:/Tools/codeql/xml
+    yaml:
+     - C:/Tools/codeql/yaml
+creationMetadata:
+  cliVersion: 2.25.1
+  creationTime: 2026-04-07T11:53:33.600694200Z
+overlayDatabase: false
+overlayBaseDatabase: false
+finalised: false

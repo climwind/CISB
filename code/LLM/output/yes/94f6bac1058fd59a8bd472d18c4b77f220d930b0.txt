@@ -1,0 +1,77 @@
+【Commit 原始内容】
+{
+  "id": "94f6bac1058fd59a8bd472d18c4b77f220d930b0",
+  "year": "2008",
+  "message": "x86: do not allow to optimize flag_is_changeable_p() (rev. 2)\n\nThe flag_is_changeable_p() is used by\nhas_cpuid_p() which can return different results\nin the code sequence below:\n\n if (!have_cpuid_p())\n      identify_cpu_without_cpuid(c);\n\n  /* cyrix could have cpuid enabled via c_identify()*/\n  if (!have_cpuid_p())\n      return;\n\nOtherwise, the gcc 3.4.6 optimizes these two calls\ninto one which make the code not working correctly.\n\nCyrix cpus have the CPUID instruction enabled before\nthe second call to the have_cpuid_p() but\nit is not detected due to the gcc optimization.\nThus the ARR registers (mtrr like) are not detected\non such a cpu.",
+  "patches": {
+    "arch/x86/kernel/cpu/common.c": "@@ -124,18 +124,25 @@ static inline int flag_is_changeable_p(u32 flag)\n {\n \tu32 f1, f2;\n \n-\tasm(\"pushfl\\n\\t\"\n-\t    \"pushfl\\n\\t\"\n-\t    \"popl %0\\n\\t\"\n-\t    \"movl %0,%1\\n\\t\"\n-\t    \"xorl %2,%0\\n\\t\"\n-\t    \"pushl %0\\n\\t\"\n-\t    \"popfl\\n\\t\"\n-\t    \"pushfl\\n\\t\"\n-\t    \"popl %0\\n\\t\"\n-\t    \"popfl\\n\\t\"\n-\t    : \"=&r\" (f1), \"=&r\" (f2)\n-\t    : \"ir\" (flag));\n+\t/*\n+\t * Cyrix and IDT cpus allow disabling of CPUID\n+\t * so the code below may return different results\n+\t * when it is executed before and after enabling\n+\t * the CPUID. Add \"volatile\" to not allow gcc to\n+\t * optimize the subsequent calls to this function.\n+\t */\n+\tasm volatile (\"pushfl\\n\\t\"\n+\t\t      \"pushfl\\n\\t\"\n+\t\t      \"popl %0\\n\\t\"\n+\t\t      \"movl %0,%1\\n\\t\"\n+\t\t      \"xorl %2,%0\\n\\t\"\n+\t\t      \"pushl %0\\n\\t\"\n+\t\t      \"popfl\\n\\t\"\n+\t\t      \"pushfl\\n\\t\"\n+\t\t      \"popl %0\\n\\t\"\n+\t\t      \"popfl\\n\\t\"\n+\t\t      : \"=&r\" (f1), \"=&r\" (f2)\n+\t\t      : \"ir\" (flag));\n \n \treturn ((f1^f2) & flag) != 0;\n }"
+  }
+}
+
+【思维链】
+我们被给予一个补丁，该补丁修改了Linux内核中x86架构的一个函数flag_is_changeable_p()。补丁信息表明，原始代码中，gcc 3.4.6可能会将两次调用have_cpuid_p()（该函数内部调用flag_is_changeable_p()）优化为一次，导致在Cyrix CPU上检测CPUID的能力出错。具体来说，Cyrix CPU可能在第一次调用时CPUID未启用，但在第二次调用前被启用（通过c_identify()），但优化后的代码只调用一次，因此无法检测到CPUID已启用，从而导致后续的ARR寄存器（类似MTRR）未能被检测。
+
+补丁修改是在asm语句中添加了"volatile"关键字，以防止编译器优化对后续调用的合并。
+
+现在，我们需要按照五个步骤分析原始代码是否可能受到“编译器引入的安全漏洞（CISB）”的影响。
+
+步骤一：理解程序员的原始安全意图。
+
+原始代码的意图：函数flag_is_changeable_p()用于测试某个CPU标志位（flag）是否可更改。具体实现是通过内联汇编读取EFLAGS寄存器，尝试更改指定位（通过xor），然后检查是否更改成功。这用于检测CPU特性，例如CPUID指令是否可用（have_cpuid_p()使用该函数测试CPUID位）。安全意图：确保正确检测CPU功能，以便后续正确初始化CPU相关设置（如MTRR/ARR寄存器）。错误检测可能导致安全漏洞，例如错过某些CPU特性的初始化，可能导致系统不稳定或安全功能缺失。
+
+步骤二：识别编译器的假设与优化行为。
+
+编译器假设：编译器通常假设程序的行为是确定的，并且没有外部干预改变程序状态。具体来说，编译器可能假设对于同一个函数，使用相同的参数调用两次，且两次调用之间没有修改任何全局状态（根据C语言规则，函数没有副作用），那么两次调用的结果应该相同。因此，编译器可能将两次调用合并为一次，或者消除一次调用（公共子表达式消除）。原始代码中，flag_is_changeable_p()函数通过内联汇编直接操作硬件寄存器，这具有副作用（修改EFLAGS），但编译器可能无法理解这些副作用，因为它位于asm语句中。然而，如果没有volatile关键字，编译器可能认为该asm语句没有副作用（或者副作用不影响后续计算），从而进行优化。
+
+编译器优化：gcc 3.4.6将两次对have_cpuid_p()的调用优化为一次，因为have_cpuid_p()内部调用flag_is_changeable_p()，而flag_is_changeable_p()的asm语句没有标记为volatile，因此编译器可能认为该函数是纯函数（即输出仅依赖于输入，且没有副作用），从而合并调用。
+
+步骤三：分析“意图”与“假设”之间的冲突。
+
+程序员的意图：函数flag_is_changeable_p()的结果可能在不同的调用之间发生变化，因为外部因素（例如Cyrix CPU上CPUID的启用）可以改变CPU状态。因此，两次调用可能返回不同的结果。编译器假设：编译器假设函数是纯的，即相同输入产生相同输出，且没有副作用。因此，编译器优化掉第二次调用，导致代码行为错误。冲突点：程序员期望函数能够反映硬件状态的变化，但编译器假设硬件状态不变。
+
+步骤四：判断是否满足CISB的四个必要条件。
+
+1、源代码安全：原始代码在没有编译器优化时，在目标机器上没有安全问题。原始代码通过内联汇编正确检测标志位是否可更改。但是，这里需要注意：原始代码的asm语句没有使用volatile，这可能导致编译器优化，但如果不优化，代码本身是正确的。问题在于，如果没有优化，两次调用会分别执行，从而可能得到不同结果。所以，从功能上讲，原始代码在没有优化时是正确的（能够检测到CPUID启用）。但是，我们需要考虑：开发者是否利用了未定义行为？内联汇编是定义良好的，但编译器对没有volatile的asm语句的优化行为是允许的。实际上，根据GCC文档，没有输出操作数的asm语句被隐式标记为volatile，但有输出操作数的asm语句默认不是volatile，除非指定。这里asm语句有输出操作数，所以默认不是volatile。开发者可能没有意识到编译器会优化掉多次调用。这不是利用未定义行为，而是对编译器优化行为的不了解。因此，原始代码在没有优化时是安全的。
+
+2、编译器引入：编译器优化在编译期间修改代码，创建了漏洞。是的，编译器将两次调用合并为一次，导致检测失败。
+
+3、代码合规：原始代码不包含任何语言关键字的错误使用。原始代码使用了内联汇编，符合GCC扩展语法。没有明显的关键字错误。但是，我们需要考虑：是否利用了未定义行为？开发者可能没有意识到asm语句需要volatile来防止优化，但这不属于关键字的错误使用。代码是符合C语言和GCC扩展的。
+
+4、编译器正确：编译器优化是形式正确的，即编译器不违反任何语言规范。编译器假设函数是纯的，并根据优化规则进行合并调用。根据C语言规范，函数的行为应遵循其定义。如果函数没有副作用且输出仅依赖于输入，编译器可以合并调用。这里，函数通过内联汇编读取硬件寄存器，但编译器无法知道硬件状态可能被外部改变（例如其他代码或CPU自身）。因此，编译器认为函数是纯的是合理的，优化是符合规范的。
+
+因此，四个条件都满足。
+
+步骤五：分类与漏洞模式匹配。
+
+我们需要判断属于哪一类CISB。
+
+模式匹配：
+- ISpec1：安全检查被移除？这里不是安全检查被移除，而是函数调用被合并，导致第二次检查被消除。这类似于安全检查被移除，因为第二次调用本应执行一次新的检查。但严格来说，它是对同一个函数的两次调用，编译器消除了冗余调用。这可以视为安全检查被移除（因为第二次检查被移除了）。
+- ISpec2：顺序敏感的安全操作被重排？这里没有明显的重排，而是调用次数减少。
+- ISpec3：不安全指令被引入或替换？没有。
+
+或者OSpec类？
+- OSpec1：敏感数据清零操作被删除？无关。
+- OSpec2：执行时间保证被破坏？无关。
+- OSpec3：引入推测执行侧信道？无关。
+
+看起来更接近ISpec1：安全检查被移除。因为两次调用have_cpuid_p()实际上是两次安全检查，编译器优化为一次，移除了第二次检查。
+
+因此，分类为ISpec。
+
+最终判断：是CISB - ISpec类。
+
+输出格式：最后一行输出判断结果。
+
+注意：题目要求不要输出步骤，直接输出结果。
+
+所以输出：【是CISB - ISpec类】编译器优化合并了两次对flag_is_changeable_p()的调用，导致在Cyrix CPU上第二次调用时本应检测到CPUID已启用，但优化后未检测，从而遗漏CPU特性检测。
+
+但根据示例，简要说明即可。
+
+最终输出：
+
+【是CISB - ISpec类】编译器优化合并两次调用，移除了第二次安全检查，导致CPU特性检测失败。
+
+【最终结果】
+【是CISB - ISpec类】编译器优化合并两次调用，移除了第二次安全检查，导致CPU特性检测失败。

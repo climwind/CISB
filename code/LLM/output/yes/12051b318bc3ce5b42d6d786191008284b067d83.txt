@@ -1,0 +1,78 @@
+【Commit 原始内容】
+{
+  "id": "12051b318bc3ce5b42d6d786191008284b067d83",
+  "year": "2019",
+  "message": "mips: avoid explicit UB in assignment of mips_io_port_base\n\nThe code in question is modifying a variable declared const through\npointer manipulation.  Such code is explicitly undefined behavior, and\nis the lone issue preventing malta_defconfig from booting when built\nwith Clang:\n\nIf an attempt is made to modify an object defined with a const-qualified\ntype through use of an lvalue with non-const-qualified type, the\nbehavior is undefined.\n\nLLVM is removing such assignments. A simple fix is to not declare\nvariables const that you plan on modifying.  Limiting the scope would be\na better method of preventing unwanted writes to such a variable.\n\nFurther, the code in question mentions \"compiler bugs\" without any links\nto bug reports, so it is difficult to know if the issue is resolved in\nGCC. The patch was authored in 2006, which would have been GCC 4.0.3 or\n4.1.1. The minimal supported version of GCC in the Linux kernel is\ncurrently 4.6.\n\nFor what its worth, there was UB before the commit in question, it just\nadded a barrier and got lucky IRT codegen. I don't think there's any\nactual compiler bugs related, just runtime bugs due to UB.\n\nLink: https://github.com/ClangBuiltLinux/linux/issues/610\nFixes: 966f4406d903 (\"[MIPS] Work around bad code generation for <asm/io.h>.\")",
+  "patches": {
+    "arch/mips/include/asm/io.h": "@@ -63,21 +63,11 @@\n  * instruction, so the lower 16 bits must be zero.  Should be true on\n  * on any sane architecture; generic code does not use this assumption.\n  */\n-extern const unsigned long mips_io_port_base;\n+extern unsigned long mips_io_port_base;\n \n-/*\n- * Gcc will generate code to load the value of mips_io_port_base after each\n- * function call which may be fairly wasteful in some cases.  So we don't\n- * play quite by the book.  We tell gcc mips_io_port_base is a long variable\n- * which solves the code generation issue.  Now we need to violate the\n- * aliasing rules a little to make initialization possible and finally we\n- * will need the barrier() to fight side effects of the aliasing chat.\n- * This trickery will eventually collapse under gcc's optimizer.  Oh well.\n- */\n static inline void set_io_port_base(unsigned long base)\n {\n-\t* (unsigned long *) &mips_io_port_base = base;\n-\tbarrier();\n+\tmips_io_port_base = base;\n }\n \n /*",
+    "arch/mips/kernel/setup.c": "@@ -74,7 +74,7 @@ static char __initdata builtin_cmdline[COMMAND_LINE_SIZE] = CONFIG_CMDLINE;\n  * mips_io_port_base is the begin of the address space to which x86 style\n  * I/O ports are mapped.\n  */\n-const unsigned long mips_io_port_base = -1;\n+unsigned long mips_io_port_base = -1;\n EXPORT_SYMBOL(mips_io_port_base);\n \n static struct resource code_resource = { .name = \"Kernel code\", };"
+  }
+}
+
+【思维链】
+首先，我需要分析这个补丁，判断原始代码是否可能受到编译器引入的安全漏洞（CISB）的影响。补丁是关于MIPS架构中mips_io_port_base变量的修改。
+
+补丁信息：
+- commit ID: 12051b318bc3ce5b42d6d786191008284b067d83
+- 年份: 2019
+- 消息: 修复了通过指针修改const变量的未定义行为（UB）。原始代码中，mips_io_port_base被声明为const，但set_io_port_base函数试图通过指针修改它。这导致Clang编译器优化掉赋值操作，从而阻止系统启动。
+- 修改内容：
+  - 在arch/mips/include/asm/io.h中，将`extern const unsigned long mips_io_port_base;`改为`extern unsigned long mips_io_port_base;`，并修改set_io_port_base函数，直接赋值而不是通过指针强制转换。
+  - 在arch/mips/kernel/setup.c中，将`const unsigned long mips_io_port_base = -1;`改为`unsigned long mips_io_port_base = -1;`。
+
+现在，按照五个步骤进行推理：
+
+**步骤一：理解程序员的原始安全意图。**
+
+原始代码中，mips_io_port_base被声明为const，目的是防止意外修改这个变量，确保其值在初始化后保持不变。set_io_port_base函数试图在运行时修改这个const变量，通过指针强制转换来绕过const限定符。程序员的意图可能是为了性能优化或特定硬件初始化，但违反了const的语义。安全意图可能是确保变量在大多数情况下不被修改，但允许在特定情况下（如初始化时）修改。消息中提到“Gcc will generate code to load the value of mips_io_port_base after each function call which may be fairly wasteful”，所以原始意图是避免编译器生成低效代码，通过欺骗编译器认为变量不是const来优化访问。
+
+**步骤二：识别编译器的假设与优化行为。**
+
+编译器假设const变量在初始化后不会被修改。根据C语言规范，通过非const指针修改const变量是未定义行为（UB）。编译器可以基于这个假设进行优化，比如将const变量视为常量，消除看似冗余的存储操作。在原始代码中，由于UB，编译器可能会优化掉赋值操作，因为从编译器的角度看，const变量不应该被修改。
+
+**步骤三：分析“意图”与“假设”之间的冲突。**
+
+程序员的意图是修改变量mips_io_port_base，但编译器假设它不能被修改（因为声明为const）。冲突在于程序员依赖未定义行为（通过指针修改const变量）来实现修改，而编译器基于规范假设该变量不变，从而可能优化掉修改操作。
+
+**步骤四：判断是否满足CISB的四个必要条件。**
+
+检查四个条件：
+
+1. **源代码安全**：原始代码在没有编译器优化时，在目标机器上没有安全问题。但这里，原始代码包含未定义行为（UB）。根据注意事项：“如果开发者利用未定义行为来实现某个特定目的或功能，则该未定义行为不能作为判断源代码不存在CISB的依据。” 程序员确实利用了UB来修改const变量，以实现特定功能（避免代码生成问题）。因此，UB被视为代码合规的一部分，而不是源代码安全问题。所以，条件1可能满足，因为UB是故意的。
+
+2. **编译器引入**：编译器优化在编译期间修改代码，创建了漏洞。在原始代码中，由于UB，编译器优化掉了赋值操作，导致变量未被正确设置，从而系统无法启动。这确实是编译器优化引入的问题。
+
+3. **代码合规**：原始代码不包含任何语言关键字的错误使用。const的使用在语法上是正确的，但通过指针修改是UB。根据注意事项，如果开发者利用UB来实现特定目的，则视为代码合规。所以，这里可能视为合规。
+
+4. **编译器正确**：编译器优化是形式正确的，即编译器不违反任何语言规范。编译器基于UB进行优化是允许的，因为UB意味着编译器可以做任何事情。所以，编译器是正确的。
+
+所有条件似乎都满足：原始代码故意利用UB，编译器优化引入漏洞，代码语法正确，编译器优化符合规范。
+
+**步骤五：分类与漏洞模式匹配。**
+
+如果满足四个条件，则进一步分类。
+
+- **ISpec（隐式规范类）**：检查模式：
+  - ISpec1：安全检查被移除。这里没有安全检查，而是赋值操作被移除。
+  - ISpec2：顺序敏感的安全操作被重排。这里没有顺序问题。
+  - ISpec3：不安全指令被引入或替换。这里，赋值操作被优化掉，可以视为不安全操作被移除。
+
+更匹配ISpec1，因为赋值操作（相当于设置值）被移除，导致变量未初始化。
+
+- **OSpec（正交规范类）**：检查模式：
+  - OSpec1：敏感数据清零操作被删除。不相关。
+  - OSpec2：执行时间保证被破坏。不相关。
+  - OSpec3：引入推测执行侧信道。不相关。
+
+所以，可能属于ISpec类。
+
+漏洞模式：编译器优化掉了对const变量的赋值，因为假设它不会被修改。这类似于安全检查被移除（虽然这里不是严格的安全检查，而是关键初始化被移除）。
+
+输出格式：最后一行直接输出判断结果。
+
+总结：原始代码利用UB修改const变量，编译器优化掉赋值，导致系统无法启动。满足CISB条件，属于ISpec类，因为编译器移除了关键操作。
+
+判断结果：【是CISB - ISpec类】编译器优化移除了对const变量的赋值操作，导致变量未被正确初始化。
+
+【最终结果】
+【是CISB - ISpec类】程序员利用未定义行为通过指针修改const变量以实现特定优化，编译器基于const假设优化掉赋值操作，导致变量未正确初始化。

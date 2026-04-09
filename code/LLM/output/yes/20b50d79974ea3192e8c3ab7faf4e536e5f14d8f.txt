@@ -1,0 +1,93 @@
+【Commit 原始内容】
+{
+  "id": "20b50d79974ea3192e8c3ab7faf4e536e5f14d8f",
+  "year": "2018",
+  "message": "net: ipv4: emulate READ_ONCE() on ->hdrincl bit-field in raw_sendmsg()\n\nCommit 8f659a03a0ba (\"net: ipv4: fix for a race condition in\nraw_sendmsg\") fixed the issue of possibly inconsistent ->hdrincl handling\ndue to concurrent updates by reading this bit-field member into a local\nvariable and using the thus stabilized value in subsequent tests.\n\nHowever, aforementioned commit also adds the (correct) comment that\n\n  /* hdrincl should be READ_ONCE(inet->hdrincl)\n   * but READ_ONCE() doesn't work with bit fields\n   */\n\nbecause as it stands, the compiler is free to shortcut or even eliminate\nthe local variable at its will.\n\nNote that I have not seen anything like this happening in reality and thus,\nthe concern is a theoretical one.\n\nHowever, in order to be on the safe side, emulate a READ_ONCE() on the\nbit-field by doing it on the local 'hdrincl' variable itself:\n\n\tint hdrincl = inet->hdrincl;\n\thdrincl = READ_ONCE(hdrincl);\n\nThis breaks the chain in the sense that the compiler is not allowed\nto replace subsequent reads from hdrincl with reloads from inet->hdrincl.\n\nFixes: 8f659a03a0ba (\"net: ipv4: fix for a race condition in raw_sendmsg\")",
+  "patches": {
+    "net/ipv4/raw.c": "@@ -520,9 +520,11 @@ static int raw_sendmsg(struct sock *sk, struct msghdr *msg, size_t len)\n \t\tgoto out;\n \n \t/* hdrincl should be READ_ONCE(inet->hdrincl)\n-\t * but READ_ONCE() doesn't work with bit fields\n+\t * but READ_ONCE() doesn't work with bit fields.\n+\t * Doing this indirectly yields the same result.\n \t */\n \thdrincl = inet->hdrincl;\n+\thdrincl = READ_ONCE(hdrincl);\n \t/*\n \t *\tCheck the flags.\n \t */"
+  }
+}
+
+【思维链】
+我们被给定一个补丁，用于修复一个潜在的理论上的编译器优化问题。补丁修改了 net/ipv4/raw.c 中的 raw_sendmsg 函数。原始代码片段如下：
+
+```
+/* hdrincl should be READ_ONCE(inet->hdrincl)
+ * but READ_ONCE() doesn't work with bit fields
+ */
+hdrincl = inet->hdrincl;
+```
+
+修改后变为：
+
+```
+/* hdrincl should be READ_ONCE(inet->hdrincl)
+ * but READ_ONCE() doesn't work with bit fields.
+ * Doing this indirectly yields the same result.
+ */
+hdrincl = inet->hdrincl;
+hdrincl = READ_ONCE(hdrincl);
+```
+
+补丁的提交信息说明：原始提交 8f659a03a0ba 修复了由于并发更新导致的 ->hdrincl 处理不一致的问题，方法是将这个位字段成员读入一个局部变量，并在后续测试中使用这个稳定后的值。但是，由于编译器可以自由地优化掉这个局部变量（例如，后续可能直接从 inet->hdrincl 重新读取），所以这是一个理论上的问题。补丁通过在使用局部变量后再用 READ_ONCE 读取该局部变量，来模拟 READ_ONCE 的效果，从而防止编译器优化。
+
+我们需要按照五个步骤分析原始代码是否存在编译器引入的安全漏洞（CISB）。
+
+步骤一：理解程序员的原始安全意图。
+原始代码试图解决一个竞态条件：inet->hdrincl 是一个位字段（bit-field），可能被并发更新（例如，来自其他线程）。为了确保在 raw_sendmsg 函数中使用的 hdrincl 值是一致的，程序员将 inet->hdrincl 读入一个局部变量 hdrincl，并打算在后续的检查中使用这个局部变量的值（而不是每次都从内存读取）。这样，即使 inet->hdrincl 在后续被其他线程修改，函数内部的逻辑也是基于读取时的快照。程序员的意图是：通过将共享变量复制到局部变量来稳定值，以避免并发修改导致的不一致行为（可能引发安全漏洞，例如不正确的标志检查导致错误的数据包处理）。安全目标是确保标志检查的原子性和一致性。
+
+步骤二：识别编译器的假设与优化行为。
+编译器遵循 C 语言规范，假设没有数据竞争（尽管这里有多线程并发访问，但程序员试图通过复制到局部变量来避免竞争，但编译器可能不知道这一点）。编译器可能会认为，局部变量 hdrincl 只是 inet->hdrincl 的一个副本，并且在后续使用 hdrincl 时，如果编译器认为 inet->hdrincl 没有被修改（或者由于别名分析认为没有其他途径修改），它可能会优化掉局部变量，直接重新从 inet->hdrincl 读取值，或者将 hdrincl 视为常量并传播。编译器可能进行的优化包括：冗余加载消除（如果编译器认为 inet->hdrincl 没有被修改，那么多次读取可以合并），或者将局部变量视为可优化掉的临时变量。另外，由于 hdrincl 是位字段，其访问可能涉及位操作，编译器可能更容易进行优化。
+
+步骤三：分析“意图”与“假设”之间的冲突。
+程序员的意图是固定 hdrincl 的值，防止后续检查时值变化。但编译器的假设是：inet->hdrincl 可能不会被其他线程修改（因为 C 语言规范中，数据竞争是未定义行为，但程序员可能通过同步机制确保安全，但这里没有显式同步），或者编译器认为局部变量的值没有必要保留，因为可以直接从原始位置读取。冲突点在于：程序员希望局部变量作为稳定快照，而编译器可能认为直接读取原始变量是等价的，从而优化掉局部变量，导致实际上后续检查中可能读取到变化后的值，破坏了稳定性。
+
+步骤四：判断是否满足CISB的四个必要条件。
+1、源代码安全：原始代码在没有编译器优化时，在目标机器上没有安全问题。原始代码将 inet->hdrincl 赋值给局部变量，然后使用该局部变量。在简单的编译器（不进行优化）下，局部变量会保留在栈上，后续使用该局部变量，不会重新读取 inet->hdrincl。因此，在没有优化的情况下，原始代码可以达到稳定值的目的。但注意：如果开发者利用了未定义行为？这里，多线程并发访问同一个变量 without proper synchronization 是数据竞争，在 C 中属于未定义行为。但程序员的意图是通过复制到局部变量来避免竞争？实际上，即使复制到局部变量，如果另一个线程同时修改 inet->hdrincl，这个复制操作本身也不是原子的，可能读取到不完整的值。但是，提交信息显示原始提交是为了修复竞态条件，所以程序员可能假设读取操作是原子的（位字段可能不是原子的）。但不管怎样，从程序员的角度，他们希望达到一致性。然而，CISB 条件1要求源代码在没有编译器优化时没有安全问题。但这里源代码本身可能存在并发安全问题，因为读取位字段可能不是原子的，且没有锁。但注意：CISB 的条件1是“原始代码在没有经过编译器优化时，在目标机器上没有安全问题”。这里“没有安全问题”是指程序员意图的安全属性在没有优化时是满足的。但在这个上下文中，程序员的意图是使用局部变量来稳定值，如果编译器不优化，确实局部变量会保持值，所以可以达到稳定值的目的。但是，如果考虑多线程，读取操作本身可能不是原子的，但这是另一个问题，不是编译器引入的。所以，我们只关心编译器优化引入的问题。因此，条件1可能满足：在没有优化时，代码行为符合预期（局部变量稳定了值）。
+
+2、编译器引入：编译器优化在编译期间修改代码，创建了漏洞。如果编译器优化掉局部变量，将后续对 hdrincl 的使用替换为直接从 inet->hdrincl 读取，那么就会破坏稳定性，引入竞态条件。这正是补丁要防止的。所以，条件2满足。
+
+3、代码合规：原始代码不包含任何语言关键字的错误使用。这里，原始代码使用了赋值语句，没有语法错误。但是，它使用了位字段的读取，这是合法的。注意：条件3特别指出“如果开发者利用了未定义行为来实现某个特定目的或功能，则该未定义行为视为代码合规”。这里，原始代码是否有未定义行为？多线程并发访问同一个变量没有同步是数据竞争，属于未定义行为。但是，程序员的意图并不是利用未定义行为，而是试图避免竞态条件。所以，这可能被视为代码中存在未定义行为，但这是无意中的，而且程序员试图通过复制到局部变量来减少问题。但是，条件3说“原始代码不包含任何语言关键字的错误使用”，并且如果利用了未定义行为则视为合规。这里，未定义行为是数据竞争，但程序员并没有主动利用它来实现某个功能，而是试图避免它。所以，我们需要判断：代码中是否有未定义行为？如果有，且不是被利用来实现功能，那么可能不符合条件3？条件3的注释说：“如果开发者利用了未定义行为来实现某个特定目的或功能，则该未定义行为视为代码合规”。反之，如果未定义行为不是被利用的，而是无意中存在的，那么可能代码不合规？但条件3的正文是“原始代码不包含任何语言关键字的错误使用”，未定义行为不一定是关键字错误使用。所以，可能条件3是满足的，因为代码没有关键字错误使用。但注意，条件3可能主要关注语法和基本合规性。我认为这里代码是合规的，因为它符合 C 语法。
+
+4、编译器正确：编译器优化是形式正确的，即编译器不违反任何语言规范。如果编译器优化掉局部变量，直接读取原始变量，这是允许的，因为编译器可以认为没有其他线程修改该变量（除非使用 volatile 或原子操作）。C 语言中，如果没有显式指定内存顺序或使用原子操作，编译器可以假设没有数据竞争。因此，这种优化是符合语言规范的。所以条件4满足。
+
+步骤五：分类与漏洞模式匹配。
+如果以上四个条件均满足，则进一步判断属于哪一类 CISB。
+这里，编译器可能进行的优化是：消除局部变量，将后续对 hdrincl 的引用替换为从 inet->hdrincl 重新读取。这可能导致安全检查（标志检查）基于不同的值，从而可能绕过检查。这类似于“安全检查被移除”吗？实际上，安全检查本身没有被移除，但是检查的值可能变化，导致安全检查不可靠。更精确地说，程序员引入局部变量是为了稳定检查所用的值，但编译器优化破坏了这种稳定性，使得检查可能使用变化后的值。这可以看作是“顺序敏感的安全操作被重排”吗？不一定重排，而是消除了稳定值的中间步骤。模式 ISpec1 是“安全检查被移除”，但这里安全检查（如 if (hdrincl)）仍然存在，只是 hdrincl 的值可能被重新读取。模式 ISpec2 是“顺序敏感的安全操作被重排”，但这里并没有明显的重排，而是编译器可能将一次读取替换为另一次读取。另一种模式可能是 ISpec3：不安全指令被引入或替换，但这里没有指令替换。实际上，这种优化可以归类为“编译器消除了本应稳定的临时变量，导致安全检查基于不稳定的值”，这类似于 ISpec1 的变种，因为安全检查的可靠性被破坏。但严格来说，安全检查没有被移除，而是被削弱了。不过，根据已知的 CISB 分类，也许可以归为 ISpec1，因为最终效果是安全检查可能失效。或者，我们可以考虑 OSpec3：引入推测执行侧信道，但这里不是推测执行。
+
+注意，补丁提交信息提到这是一个理论上的问题，在实际中可能没有观察到。但我们的任务是判断原始代码是否可能受到 CISB 影响。
+
+我认为这个案例符合 CISB，因为它涉及编译器优化破坏了程序员对值稳定的假设。漏洞模式：程序员使用局部变量来稳定共享变量的值，以防止竞态条件，但编译器可能优化掉局部变量，导致实际上仍然读取共享变量。这可以看作是安全检查（对稳定值的依赖）被编译器破坏。也许可以归类为 ISpec1。
+
+但让我们重新审视条件1：原始代码在没有优化时是安全的吗？假设没有编译器优化，局部变量被保留，那么后续检查使用局部变量，即使有其他线程修改 inet->hdrincl，也不会影响检查。所以，在没有优化时，代码是安全的（达到了稳定值的目的）。条件1成立。
+
+条件2：编译器优化可能消除局部变量，引入漏洞。
+
+条件3：代码合规，没有关键字错误使用。
+
+条件4：编译器优化是符合语言规范的，因为 C 语言不保证多线程内存可见性，除非使用特殊机制。
+
+所以四个条件都满足。
+
+最后分类：我认为这属于 ISpec1：安全检查被移除（虽然检查本身还在，但确保检查一致性的机制被移除，导致检查可能不可靠）。或者更准确地说，是“稳定值的机制被移除”，这可以视为安全检查依赖的前提被破坏。
+
+输出格式：在最后一行输出判断结果。
+
+所以，结论是：是CISB - ISpec类（可能是ISpec1）。
+
+但让我们看看是否有更精确的分类。提交信息说：“编译器是自由地 shortcut 或甚至消除这个局部变量”，这可能导致后续读取不一致。这属于编译器优化引入的竞态条件漏洞。
+
+因此，输出为：【是CISB - ISpec类】编译器可能优化掉用于稳定值的局部变量，导致安全检查基于不稳定的共享变量。
+
+由于输出格式要求最后一行直接输出判断结果，我们可以写：
+
+【是CISB - ISpec类】程序员使用局部变量稳定位字段的值以防止竞态条件，编译器可能优化掉局部变量直接读取原变量，破坏稳定性。
+
+但为了简洁，可以精简。
+
+注意：模式是 ISpec 类，具体是 ISpec1、ISpec2 还是 ISpec3？我认为 ISpec1 最接近，因为安全检查（标志检查）可能被绕过。但描述中可以说“ISpec类”。
+
+最终输出：
+
+【最终结果】
+【是CISB - ISpec类】程序员使用局部变量稳定共享位字段值以防止竞态条件，编译器可能优化掉局部变量直接重新读取原变量，破坏值稳定性，导致安全检查基于变化的值。

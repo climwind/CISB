@@ -1,0 +1,62 @@
+【Commit 原始内容】
+{
+  "id": "16f5e707d6f6f7644ff07e583b8f18c3dcc5499f",
+  "year": "2020",
+  "message": "mm/rmap: stop store reordering issue on page->mapping\n\nHugh Dickins and Minchan Kim observed a long time issue which discussed\nhere, but actully the mentioned fix in\n\n  https://lore.kernel.org/lkml/20150504031722.GA2768@blaptop/\n\nwas missed.\n\nThe store reordering may cause problem in the scenario:\n\n\tCPU 0\t\t\t\t\t\tCPU1\n   do_anonymous_page\n\tpage_add_new_anon_rmap()\n\t  page->mapping = anon_vma + PAGE_MAPPING_ANON\n\tlru_cache_add_inactive_or_unevictable()\n\t  spin_lock(lruvec->lock)\n\t  SetPageLRU()\n\t  spin_unlock(lruvec->lock)\n\t\t\t\t\t\t/* idletacking judged it as LRU\n\t\t\t\t\t\t * page so pass the page in\n\t\t\t\t\t\t * page_idle_clear_pte_refs\n\t\t\t\t\t\t */\n\t\t\t\t\t\tpage_idle_clear_pte_refs\n\t\t\t\t\t\t  rmap_walk\n\t\t\t\t\t\t    if PageAnon(page)\n\nJohannes give detailed examples how the store reordering could cause\ntrouble: \"The concern is the SetPageLRU may get reorder before\n'page->mapping' setting, That would make CPU 1 will observe at\npage->mapping after observing PageLRU set on the page.\n\n1. anon_vma + PAGE_MAPPING_ANON\n\n   That's the in-order scenario and is fine.\n\n2. NULL\n\n   That's possible if the page->mapping store gets reordered to occur\n   after SetPageLRU. That's fine too because we check for it.\n\n3. anon_vma without the PAGE_MAPPING_ANON bit\n\n   That would be a problem and could lead to all kinds of undesirable\n   behavior including crashes and data corruption.\n\n   Is it possible? AFAICT the compiler is allowed to tear the store to\n   page->mapping and I don't see anything that would prevent it.\n\nThat said, I also don't see how the reader testing PageLRU under the\nlru_lock would prevent that in the first place.  AFAICT we need that\nWRITE_ONCE() around the page->mapping assignment.\"\n\n[alex.shi@linux.alibaba.com: updated for comments change from Johannes]\n  Link: https://lkml.kernel.org/r/e66ef2e5-c74c-6498-e8b3-56c37b9d2d15@linux.alibaba.com\n\nLink: https://lkml.kernel.org/r/1604566549-62481-7-git-send-email-alex.shi@linux.alibaba.com",
+  "patches": {
+    "mm/rmap.c": "@@ -1054,8 +1054,14 @@ static void __page_set_anon_rmap(struct page *page,\n \tif (!exclusive)\n \t\tanon_vma = anon_vma->root;\n \n+\t/*\n+\t * page_idle does a lockless/optimistic rmap scan on page->mapping.\n+\t * Make sure the compiler doesn't split the stores of anon_vma and\n+\t * the PAGE_MAPPING_ANON type identifier, otherwise the rmap code\n+\t * could mistake the mapping for a struct address_space and crash.\n+\t */\n \tanon_vma = (void *) anon_vma + PAGE_MAPPING_ANON;\n-\tpage->mapping = (struct address_space *) anon_vma;\n+\tWRITE_ONCE(page->mapping, (struct address_space *) anon_vma);\n \tpage->index = linear_page_index(vma, address);\n }\n "
+  }
+}
+
+【思维链】
+我们被要求分析一个补丁，判断该补丁所修改的原始代码是否可能受到“编译器引入的安全漏洞（CISB）”的影响。补丁是关于Linux内核内存管理中的rmap代码。
+
+ 补丁信息：
+ 原始代码：
+   anon_vma = (void *) anon_vma + PAGE_MAPPING_ANON;
+   page->mapping = (struct address_space *) anon_vma;
+
+ 修改后：
+   anon_vma = (void *) anon_vma + PAGE_MAPPING_ANON;
+   WRITE_ONCE(page->mapping, (struct address_space *) anon_vma);
+
+ 修改是将直接赋值改为使用WRITE_ONCE宏。WRITE_ONCE是Linux内核中用于防止编译器优化时对内存访问进行重排或撕裂的宏。
+
+ 根据提交信息，这个补丁修复了一个长久的store reordering（存储重排序）问题。问题描述是：在do_anonymous_page中，先设置page->mapping，然后通过SetPageLRU将页面添加到LRU链表。但是，编译器可能会将这两个存储操作重排序，导致CPU1在观察到PageLRU被设置时，page->mapping可能还没有被正确设置（或者被撕裂读取）。这可能导致page_idle_clear_pte_refs中的rmap_walk错误地判断页面类型，进而导致崩溃或数据损坏。
+
+ 具体来说，page->mapping的赋值可能被拆分成两个部分（撕裂）或者与后面的SetPageLRU重排序。使用WRITE_ONCE可以确保这个赋值是原子的，并且不会被编译器重排序。
+
+ 现在，我们按照步骤分析：
+
+ 步骤一：理解程序员的原始安全意图。
+ 原始代码试图将匿名页面的anon_vma结构指针与PAGE_MAPPING_ANON（一个标志位）组合后存储到page->mapping中。这样，后续的代码可以通过检查page->mapping的最低位来判断页面是否是匿名页面（PAGE_MAPPING_ANON位被设置）。安全目标是确保page->mapping的赋值是完整的（不被撕裂）并且与后续的SetPageLRU操作不重排序，以免其他CPU在看到页面被标记为LRU时，却看到不完整的mapping值。这可以防止其他代码（如page_idle_clear_pte_refs）错误地解释page->mapping，从而避免系统崩溃或数据损坏。
+
+ 步骤二：识别编译器的假设与优化行为。
+ 编译器可能假设没有并发访问（即单线程执行顺序），因此可能对存储操作进行重排序以优化性能。它可能将page->mapping的赋值与后续的存储操作（如设置LRU标志）重排序，因为这两个操作在源代码中顺序执行，且没有显式的屏障。此外，编译器可能将page->mapping的赋值拆分成多个存储指令（例如，如果架构不支持原子存储，或者编译器认为拆分更高效）。
+
+ 步骤三：分析“意图”与“假设”之间的冲突。
+ 程序员意图是：先设置page->mapping（包含anon_vma和标志位），然后设置LRU标志，并且希望其他CPU在看到LRU标志时，一定能看到完整的page->mapping赋值。但编译器假设这些存储操作可以重排序，并且可能拆分存储，这就导致了冲突。具体来说，如果重排序发生，其他CPU可能先看到LRU标志，然后看到不完整的page->mapping（例如，只看到了anon_vma而没有标志位，或者看到了NULL）。
+
+ 步骤四：判断是否满足CISB的四个必要条件。
+
+ 1、源代码安全：原始代码在没有编译器优化时，在目标机器上可能没有安全问题。但是，注意这里的目标机器可能是有多核并发并且内存模型较弱的体系结构。在没有重排序的情况下，原始代码可能是安全的。但是，如果开发者依赖了顺序，而编译器重排序打破了这种顺序，那么原始代码在没有优化时是安全的，但经过优化后可能不安全。注意：这里开发者并没有利用未定义行为，他们只是按照顺序写代码，期望编译器保持顺序。因此，原始代码在没有优化时是安全的。
+
+ 2、编译器引入：编译器优化在编译期间修改代码，创建了漏洞。具体来说，编译器可能对存储操作重排序或拆分，这导致了并发场景下的问题。因此，这个漏洞是编译器优化引入的。
+
+ 3、代码合规：原始代码不包含任何语言关键字的错误使用。这里，原始代码使用了C语言赋值，这是合法的。虽然开发者可能没有意识到并发场景下需要显式的内存屏障，但代码本身是符合C语言规范的。注意：这里并没有利用未定义行为来实现特定功能，而是期望编译器保持顺序，但C语言的内存模型并不保证顺序，除非使用原子操作或屏障。因此，原始代码在语言规范下可能并不保证顺序，但这不是关键字的错误使用。所以，可以认为是代码合规的。
+
+ 4、编译器正确：编译器优化是形式正确的，即编译器不违反任何语言规范。因为C语言规范并不保证内存操作的顺序（除非使用原子操作或屏障），所以编译器进行重排序是允许的。因此，编译器优化是符合语言规范的。
+
+ 步骤五：分类与漏洞模式匹配。
+ 如果以上四个条件均满足，则进一步判断属于哪一类CISB。
+
+ 根据分析，这个漏洞属于“隐式规范类（ISpec）”中的ISpec2：顺序敏感的安全操作被重排（如检查后使用、内存操作顺序）。因为这里的问题正是存储操作被重排序，导致其他CPU观察到的顺序与程序员期望的顺序不一致。
+
+ 因此，判断结果为：是CISB，属于ISpec类（具体为ISpec2）。
+
+ 注意：补丁中使用了WRITE_ONCE，这个宏可以防止编译器重排和撕裂，从而修复了漏洞。
+
+ 最后输出格式：在最后一行输出判断结果。
+
+【最终结果】
+【是CISB - ISpec类】程序员的原始安全意图是确保page->mapping的原子写入，防止存储撕裂或重排序导致其他CPU观察到不一致的映射状态（如anon_vma缺少PAGE_MAPPING_ANON标志），从而避免后续rmap扫描误判引发崩溃。编译器假设没有数据竞争并可能对存储操作重排或拆分，与程序员对原子性和顺序的隐式期望冲突。原始代码在无优化时安全，编译器优化引入重排/撕裂风险，代码合规（无关键字误用），编译器优化符合语言规范，属于ISpec2（顺序敏感的安全操作被重排）。

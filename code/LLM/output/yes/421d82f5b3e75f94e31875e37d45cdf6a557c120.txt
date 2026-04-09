@@ -1,0 +1,54 @@
+【Commit 原始内容】
+{
+  "id": "421d82f5b3e75f94e31875e37d45cdf6a557c120",
+  "year": "2014",
+  "message": "crypto: drbg - use memzero_explicit() for clearing sensitive data\n\nCompiler dead store optimization can sometimes remove final calls\nto memset() used to clear sensitive data at the end of a function.\nReplace trailing memset() calls with memzero_explicit() to\npreclude unwanted removal.",
+  "patches": {
+    "crypto/drbg.c": "@@ -98,6 +98,7 @@\n  */\n \n #include <crypto/drbg.h>\n+#include <linux/string.h>\n \n /***************************************************************\n  * Backend cipher definitions available to DRBG\n@@ -497,9 +498,9 @@ static int drbg_ctr_df(struct drbg_state *drbg,\n \tret = 0;\n \n out:\n-\tmemset(iv, 0, drbg_blocklen(drbg));\n-\tmemset(temp, 0, drbg_statelen(drbg));\n-\tmemset(pad, 0, drbg_blocklen(drbg));\n+\tmemzero_explicit(iv, drbg_blocklen(drbg));\n+\tmemzero_explicit(temp, drbg_statelen(drbg));\n+\tmemzero_explicit(pad, drbg_blocklen(drbg));\n \treturn ret;\n }\n \n@@ -573,9 +574,9 @@ static int drbg_ctr_update(struct drbg_state *drbg, struct list_head *seed,\n \tret = 0;\n \n out:\n-\tmemset(temp, 0, drbg_statelen(drbg) + drbg_blocklen(drbg));\n+\tmemzero_explicit(temp, drbg_statelen(drbg) + drbg_blocklen(drbg));\n \tif (2 != reseed)\n-\t\tmemset(df_data, 0, drbg_statelen(drbg));\n+\t\tmemzero_explicit(df_data, drbg_statelen(drbg));\n \treturn ret;\n }\n \n@@ -633,7 +634,7 @@ static int drbg_ctr_generate(struct drbg_state *drbg,\n \t\tlen = ret;\n \n out:\n-\tmemset(drbg->scratchpad, 0, drbg_blocklen(drbg));\n+\tmemzero_explicit(drbg->scratchpad, drbg_blocklen(drbg));\n \treturn len;\n }\n \n@@ -871,7 +872,7 @@ static int drbg_hash_df(struct drbg_state *drbg,\n \t}\n \n out:\n-\tmemset(tmp, 0, drbg_blocklen(drbg));\n+\tmemzero_explicit(tmp, drbg_blocklen(drbg));\n \treturn ret;\n }\n \n@@ -915,7 +916,7 @@ static int drbg_hash_update(struct drbg_state *drbg, struct list_head *seed,\n \tret = drbg_hash_df(drbg, drbg->C, drbg_statelen(drbg), &datalist2);\n \n out:\n-\tmemset(drbg->scratchpad, 0, drbg_statelen(drbg));\n+\tmemzero_explicit(drbg->scratchpad, drbg_statelen(drbg));\n \treturn ret;\n }\n \n@@ -950,7 +951,7 @@ static int drbg_hash_process_addtl(struct drbg_state *drbg,\n \t\t     drbg->scratchpad, drbg_blocklen(drbg));\n \n out:\n-\tmemset(drbg->scratchpad, 0, drbg_blocklen(drbg));\n+\tmemzero_explicit(drbg->scratchpad, drbg_blocklen(drbg));\n \treturn ret;\n }\n \n@@ -997,7 +998,7 @@ static int drbg_hash_hashgen(struct drbg_state *drbg,\n \t}\n \n out:\n-\tmemset(drbg->scratchpad, 0,\n+\tmemzero_explicit(drbg->scratchpad,\n \t       (drbg_statelen(drbg) + drbg_blocklen(drbg)));\n \treturn len;\n }\n@@ -1046,7 +1047,7 @@ static int drbg_hash_generate(struct drbg_state *drbg,\n \tdrbg_add_buf(drbg->V, drbg_statelen(drbg), u.req, 8);\n \n out:\n-\tmemset(drbg->scratchpad, 0, drbg_blocklen(drbg));\n+\tmemzero_explicit(drbg->scratchpad, drbg_blocklen(drbg));\n \treturn len;\n }\n "
+  }
+}
+
+【思维链】
+我们被问到："分析一个补丁，判断该补丁所修改的原始代码是否可能受到“编译器引入的安全漏洞（CISB）”的影响。" 补丁是来自Linux内核的crypto/drbg.c，将memset替换为memzero_explicit。提交信息说："Compiler dead store optimization can sometimes remove final calls to memset() used to clear sensitive data at the end of a function. Replace trailing memset() calls with memzero_explicit() to preclude unwanted removal."
+
+我们需要按照五个步骤推理，然后输出结果。
+
+步骤一：理解程序员的原始安全意图。
+原始代码使用memset来清零敏感数据（如iv、temp、pad、scratchpad等）。安全意图是确保敏感数据（如密钥材料、中间值）在函数结束后不被留在内存中，防止信息泄露。这是典型的安全擦除。
+
+步骤二：识别编译器的假设与优化行为。
+编译器假设程序没有未定义行为，并且可以进行死代码消除（dead store elimination）。如果编译器发现一个存储操作后内存不再被访问，并且存储的值对程序后续结果没有影响（即存储是“死”的），那么编译器可以消除这些存储操作。memset是一个函数，编译器可能知道它的语义（通常编译器内置了对memset的理解），如果数据之后不再使用，编译器可能会认为memset是冗余的并删除它。
+
+步骤三：分析“意图”与“假设”之间的冲突。
+程序员的意图是确保敏感数据被清零，即使这些数据之后不再被使用。编译器假设如果存储的数据之后不再被读取，那么存储操作是冗余的，可以安全删除。这导致了冲突：程序员希望存储发生（出于安全原因），而编译器认为存储可以消除（出于优化原因）。这本质上是安全擦除与死代码消除优化之间的冲突。
+
+步骤四：判断是否满足CISB的四个必要条件。
+1. 源代码安全：原始代码使用memset来清零敏感数据，在没有编译器优化的情况下，这些memset调用会执行，清除敏感数据，因此是安全的。但是注意：提交信息说编译器死存储优化有时会移除这些memset调用。所以原始代码的安全依赖于这些memset调用不被移除。如果编译器优化移除了它们，那么敏感数据不会被清零，可能导致信息泄露。但是条件1要求“原始代码在没有经过编译器优化时，在目标机器上没有安全问题”。这里，原始代码（没有优化）会执行memset，所以是安全的。但需要注意：如果开发者利用了未定义行为？这里没有明显的未定义行为。memset是标准函数，使用正确。所以满足条件1。
+
+2. 编译器引入：编译器优化（死代码消除）在编译期间可能修改代码，移除memset调用，从而创建漏洞（敏感数据未清零）。提交信息明确指出这一点。所以满足条件2。
+
+3. 代码合规：原始代码不包含任何语言关键字的错误使用。memset的使用是符合C语言规范的。没有语法错误或关键字的误用。注意：条件3说“如果开发者利用了未定义行为来实现某个特定目的或功能，则该未定义行为视为代码合规”。这里没有未定义行为，所以代码是合规的。
+
+4. 编译器正确：编译器优化是形式正确的，即编译器不违反任何语言规范。死代码消除是允许的优化，因为C语言规范没有要求必须执行无副作用的死存储。编译器假设程序行为符合规范，如果数据不再访问，那么删除存储不会影响程序的可观察行为。因此，编译器优化是正确的。
+
+因此，四个条件都满足。
+
+步骤五：分类与漏洞模式匹配。
+这属于哪一类？模式有：
+A.隐式规范类（ISpec）：ISpec1：安全检查被移除？这里不是安全检查，是数据清零。ISpec2：顺序敏感的安全操作被重排？这里没有重排，是移除。ISpec3：不安全指令被引入或替换？没有。
+B.正交规范类（OSpec）：OSpec1：敏感数据清零操作被删除（如 memset、memzero_explicit）——这正是这个情况！所以匹配OSpec1。
+
+因此，这是CISB，属于OSpec1类。
+
+输出格式：最后一行输出判断结果。
+“【是CISB - OSpec类】 + 简要说明”或“【不是CISB】 + 原因”。
+
+这里应该是“【是CISB - OSpec类】敏感数据清零操作被编译器死代码消除优化删除”。
+
+注意：输出不要步骤，直接最后一行输出结果。
+
+所以最终输出为：
+【是CISB - OSpec类】敏感数据清零操作被编译器死代码消除优化删除
+
+【最终结果】
+【是CISB - OSpec类】敏感数据清零操作被编译器死代码消除优化删除

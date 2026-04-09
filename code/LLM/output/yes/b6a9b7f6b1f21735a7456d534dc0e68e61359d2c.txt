@@ -1,0 +1,109 @@
+【Commit 原始内容】
+{
+  "id": "b6a9b7f6b1f21735a7456d534dc0e68e61359d2c",
+  "year": "2013",
+  "message": "mm: prevent mmap_cache race in find_vma()\n\nfind_vma() can be called by multiple threads with read lock\nheld on mm->mmap_sem and any of them can update mm->mmap_cache.\nPrevent compiler from re-fetching mm->mmap_cache, because other\nreaders could update it in the meantime:\n\n               thread 1                             thread 2\n                                        |\n  find_vma()                            |  find_vma()\n    struct vm_area_struct *vma = NULL;  |\n    vma = mm->mmap_cache;               |\n    if (!(vma && vma->vm_end > addr     |\n        && vma->vm_start <= addr)) {    |\n                                        |    mm->mmap_cache = vma;\n    return vma;                         |\n     ^^ compiler may optimize this      |\n        local variable out and re-read  |\n        mm->mmap_cache                  |\n\nThis issue can be reproduced with gcc-4.8.0-1 on s390x by running\nmallocstress testcase from LTP, which triggers:\n\n  kernel BUG at mm/rmap.c:1088!\n    Call Trace:\n     ([<000003d100c57000>] 0x3d100c57000)\n      [<000000000023a1c0>] do_wp_page+0x2fc/0xa88\n      [<000000000023baae>] handle_pte_fault+0x41a/0xac8\n      [<000000000023d832>] handle_mm_fault+0x17a/0x268\n      [<000000000060507a>] do_protection_exception+0x1e2/0x394\n      [<0000000000603a04>] pgm_check_handler+0x138/0x13c\n      [<000003fffcf1f07a>] 0x3fffcf1f07a\n    Last Breaking-Event-Address:\n      [<000000000024755e>] page_add_new_anon_rmap+0xc2/0x168\n\nThanks to Jakub Jelinek for his insight on gcc and helping to\ntrack this down.",
+  "patches": {
+    "mm/mmap.c": "@@ -1940,7 +1940,7 @@ struct vm_area_struct *find_vma(struct mm_struct *mm, unsigned long addr)\n \n \t/* Check the cache first. */\n \t/* (Cache hit rate is typically around 35%.) */\n-\tvma = mm->mmap_cache;\n+\tvma = ACCESS_ONCE(mm->mmap_cache);\n \tif (!(vma && vma->vm_end > addr && vma->vm_start <= addr)) {\n \t\tstruct rb_node *rb_node;\n ",
+    "mm/nommu.c": "@@ -821,7 +821,7 @@ struct vm_area_struct *find_vma(struct mm_struct *mm, unsigned long addr)\n \tstruct vm_area_struct *vma;\n \n \t/* check the cache first */\n-\tvma = mm->mmap_cache;\n+\tvma = ACCESS_ONCE(mm->mmap_cache);\n \tif (vma && vma->vm_start <= addr && vma->vm_end > addr)\n \t\treturn vma;\n "
+  }
+}
+
+【思维链】
+首先，任务是分析补丁，判断原始代码是否可能受到“编译器引入的安全漏洞（CISB）”的影响。补丁是JSON格式，我需要按照五个步骤推理，但输出时只输出判断结果。
+
+补丁信息：
+- id: b6a9b7f6b1f21735a7456d534dc0e68e61359d2c
+- year: 2013
+- message: 描述了问题。关键点是：find_vma() 可以被多个线程调用，每个线程都持有 mm->mmap_sem 的读锁。任何线程都可以更新 mm->mmap_cache。编译器可能重新获取 mm->mmap_cache，因为其他读取者可能在同时更新它。这可能导致问题，如内核BUG。
+- patches: 修改了两个文件：mm/mmap.c 和 mm/nommu.c。修改内容是将 `vma = mm->mmap_cache;` 改为 `vma = ACCESS_ONCE(mm->mmap_cache);`。ACCESS_ONCE 是Linux内核中的宏，用于防止编译器优化时重新读取变量。
+
+现在，按照步骤推理：
+
+**步骤一：理解程序员的原始安全意图。**
+
+原始代码试图实现什么安全目标？从提交信息看，程序员想要防止在多线程环境下，由于编译器优化导致 mmap_cache 被重新读取，从而引发竞争条件。具体来说，线程1读取 mm->mmap_cache 到局部变量 vma，然后检查条件。同时，线程2可能更新 mm->mmap_cache。如果编译器优化，可能会重新读取 mm->mmap_cache 而不是使用局部变量，这可能导致线程1使用过时的缓存值，进而导致内核崩溃或其他安全问题。安全目标是确保在 find_vma() 中，对 mmap_cache 的读取是原子的或一致的，避免数据竞争导致的未定义行为。
+
+原始代码没有使用 ACCESS_ONCE，所以编译器可能假设 mm->mmap_cache 在函数内不会改变（因为它是通过指针访问的全局变量），从而优化掉局部变量，直接重新读取。程序员的意图是依赖局部变量 vma 来保持一致性，但编译器可能破坏这个意图。
+
+**步骤二：识别编译器的假设与优化行为。**
+
+编译器基于C语言规范编译原始代码。假设没有显式的同步（如 volatile 或原子操作），编译器可能假设 mm->mmap_cache 在函数调用期间不会改变，因为它是一个普通的内存访问。编译器可能执行优化，如：
+- 冗余加载消除：如果编译器认为 mm->mmap_cache 被读取多次且值不变，它可能会消除额外的读取，或者重用旧值。
+- 指令重排：为了提高性能，编译器可能重新排列内存访问顺序。
+- 死代码消除：但这里没有死代码。
+
+具体来说，在原始代码中，`vma = mm->mmap_cache;` 之后，vma 被使用在条件检查中。编译器可能认为 mm->mmap_cache 是稳定的，所以如果条件检查中 vma 被使用，但编译器可能为了效率重新读取 mm->mmap_cache 而不是使用局部变量 vma。提交信息中提到“compiler may optimize this local variable out and re-read mm->mmap_cache”，所以优化是重新读取全局变量。
+
+**步骤三：分析“意图”与“假设”之间的冲突。**
+
+程序员的原始安全目标：确保在检查条件时，使用的 vma 值是一致的，即读取一次 mmap_cache 并保持不变，即使其他线程更新它。这类似于一个锁-free 的读取，希望避免竞争。
+
+编译器的假设：假设 mm->mmap_cache 是一个普通内存位置，没有 volatile 修饰，所以编译器可以自由优化，包括重新读取或缓存值。
+
+冲突点：程序员依赖局部变量 vma 来保持读取的原子性（虽然不是真正的原子操作，但意图是单次读取），但编译器可能假设内存访问可优化，从而重新读取 mmap_cache，破坏了这种一致性。这可能导致线程1在检查条件时使用陈旧的 vma 值，而线程2已经更新了 mmap_cache，导致后续操作出错（如内核BUG）。
+
+**步骤四：判断是否满足CISB的四个必要条件。**
+
+逐一检查：
+
+1. **源代码安全**：原始代码在没有编译器优化时，在目标机器上没有安全问题。假设在无优化编译下，局部变量 vma 被赋值一次，然后使用该值检查条件。在多线程环境下，即使有其他线程更新 mmap_cache，局部变量 vma 仍然是旧值，但检查可能失败或成功，取决于时机。提交信息表明这会导致内核BUG，所以原始代码在优化前可能安全？但问题是在编译器优化引入后才有问题。条件说“在没有经过编译器优化时”，所以如果关闭优化，代码可能安全。但原始代码依赖局部变量来避免重新读取，如果编译器不优化，它应该工作。但多线程下，即使没有优化，也有竞争条件？提交信息说“Prevent compiler from re-fetching”，所以问题是由编译器优化引入的。在无优化时，代码可能正确，但多线程下仍有数据竞争，但那是另一个问题。CISB关注编译器引入的漏洞，所以条件1：原始代码在无优化时应该没有安全问题。这里，原始代码有数据竞争，但程序员的意图是通过局部变量缓解。我需要判断。
+
+   - 注意：条件1说“原始代码在没有经过编译器优化时，在目标机器上没有安全问题”。如果开发者利用了未定义行为，则视为不是安全问题。这里，原始代码没有使用 volatile 或原子操作，多线程访问共享变量是数据竞争，属于未定义行为。但程序员的意图是依赖读锁（mm->mmap_sem 的读锁），提交信息说“with read lock held on mm->mmap_sem”，所以有锁保护？提交信息说“find_vma() can be called by multiple threads with read lock held on mm->mmap_sem”，所以多个线程都持有读锁，但读锁允许并发读，但写操作需要写锁。mmap_cache 的更新可能发生在持有读锁时？提交信息说“any of them can update mm->mmap_cache”，但更新时应该持有写锁？不，在 find_vma 中，更新 mmap_cache 可能发生在其他函数或同一函数中？查看提交信息中的例子：线程2 在 find_vma() 中更新 mm->mmap_cache。但 find_vma() 通常只读，但可能缓存结果。实际上，从代码看，find_vma() 可能更新缓存作为优化。但提交信息说“read lock held”，所以更新缓存时可能也持有读锁？这有点混乱。但关键点是，编译器优化可能引入问题。
+
+   - 为了安全，程序员的意图是确保一次读取。在无编译器优化时，代码可能安全，因为局部变量 vma 被赋值一次并用于检查。但多线程下，vma 赋值后，mmap_cache 可能被其他线程更新，但局部变量 vma 保持不变，所以检查可能基于旧值，这可能导致错误但可能不是安全问题？提交信息显示它导致内核BUG，所以是安全问题。但条件1要求无优化时没有安全问题。或许在无优化时，代码仍有数据竞争，但未定义行为可能不会导致崩溃？我不确定。
+
+   - 条件1的注意点：如果开发者利用了未定义行为来实现特定功能，则视为代码合规。这里，开发者没有故意利用未定义行为；相反，他们试图避免它，但编译器优化引入了问题。原始代码中，多线程访问共享变量 without proper synchronization 是未定义行为，但程序员可能假设读锁足够？读锁允许并发读，但写需要协调。更新 mmap_cache 可能被视为写操作，所以应该有写锁。但提交信息说“with read lock held”，所以可能更新缓存时也持有读锁，这是不安全的。但这不是编译器引入的。
+
+   - 我认为原始代码有数据竞争，属于未定义行为，所以可能不满足条件1？但CISB的定义是编译器引入的漏洞，所以条件1应该假设源代码在语义上是安全的，但编译器优化打破了它。这里，原始代码在无优化时可能工作，但多线程下行为未定义。然而，程序员的意图是依赖局部变量来保证一致性，这依赖于编译器的行为。
+
+   为了保守起见，我需要检查条件。条件1说“原始代码在没有经过编译器优化时，在目标机器上没有安全问题”。如果关闭优化，代码可能不会重新读取 mmap_cache，所以局部变量 vma 保持不变，检查基于旧值。但多线程下，如果其他线程更新了 mmap_cache，基于旧值的检查可能导致错误，但这是逻辑错误，不是编译器引入的。提交信息表明，只有在编译器优化重新读取时才会触发BUG。所以，或许在无优化时，代码是安全的或至少不会崩溃。
+
+   假设在无优化时，代码正确执行：vma 被赋值一次，然后检查。即使其他线程更新，vma 是旧值，但检查可能失败，导致函数执行其他路径（如搜索rb树），这可能是正确的行为？不，提交信息中的例子：线程1 读取 vma，检查条件，如果条件不满足，它可能返回 vma 或做其他事。但优化导致重新读取，可能 vma 变为新值，导致条件检查不一致。
+
+   具体来说，在原始代码中：
+   vma = mm->mmap_cache;
+   if (!(vma && vma->vm_end > addr && vma->vm_start <= addr)) {
+        // 如果条件为真，执行其他搜索
+   }
+   在无优化时，vma 是读取时的值。如果其他线程更新了 mmap_cache，vma 仍然是旧值，所以检查基于旧值，这可能正确或错误，但至少是一致的。
+   在优化时，编译器可能重新读取 mm->mmap_cache 在条件检查中，所以 vma 可能被替换为新的读取，导致条件检查使用新旧混合值，引发问题。
+
+   所以，在无优化时，代码可能没有安全问题；安全问题是由编译器优化引入的。因此，条件1可能满足。
+
+2. **编译器引入**：编译器优化在编译期间修改代码，创建了漏洞。是的，提交信息明确指出编译器可能优化掉局部变量并重新读取 mmap_cache，这引入了竞争条件导致漏洞。补丁使用 ACCESS_ONCE 来防止这种优化。
+
+3. **代码合规**：原始代码不包含任何语言关键字的错误使用。原始代码使用普通指针访问，没有语法错误。注意：如果开发者利用了未定义行为，则视为合规。这里，开发者没有故意利用未定义行为；代码是普通的C代码，多线程访问共享变量 without synchronization 是未定义行为，但程序员可能假设读锁提供了一些保护。但严格来说，代码没有使用 volatile 或原子操作，所以有数据竞争，属于未定义行为。但条件说“如果开发者利用了未定义行为来实现某个特定目的或功能，则该未定义行为视为代码合规”。这里，开发者没有利用未定义行为；他们试图避免它，但代码本身有潜在的未定义行为。然而，在CISB上下文中，我们关注编译器优化引入的问题。或许代码合规，因为它没有错误使用关键字。
+
+   原始代码：`vma = mm->mmap_cache;` 是合法的C代码。没有违反语言规范的关键字使用。数据竞争是语义问题，不是语法问题。所以条件3可能满足。
+
+4. **编译器正确**：编译器优化是形式正确的，即编译器不违反任何语言规范。编译器假设 mm->mmap_cache 是普通内存，可以优化重新读取，这是符合C语言规范的，因为如果没有 volatile 或原子操作，编译器可以自由优化内存访问。所以条件4满足。
+
+所以，四个条件似乎都满足。
+
+**步骤五：分类与漏洞模式匹配。**
+
+如果满足四个条件，判断属于哪一类CISB：
+
+A. 隐式规范类（ISpec）：
+   - ISpec1：安全检查被移除。这里没有明显的安全检查被移除，而是内存访问被优化导致不一致。
+   - ISpec2：顺序敏感的安全操作被重排。是的，程序员的意图是顺序：先读取 mmap_cache 到局部变量，然后使用局部变量检查。但编译器可能重排或重新读取，破坏了顺序。提交信息说“re-read mm->mmap_cache”，所以是重新读取，可能涉及指令重排或冗余加载消除。
+   - ISpec3：不安全指令被引入或替换。不直接匹配。
+
+B. 正交规范类（OSpec）：
+   - OSpec1：敏感数据清零操作被删除。不匹配。
+   - OSpec2：执行时间保证被破坏。不匹配，这里不是恒定时间操作。
+   - OSpec3：引入推测执行侧信道。不匹配，这是多线程竞争，不是侧信道。
+
+最匹配的是 ISpec2：顺序敏感的安全操作被重排。程序员的意图是读取一次并保持一致性，但编译器可能重新读取，改变了顺序。
+
+输出格式：最后一行输出判断结果。
+
+所以，我认为这是一个CISB，属于ISpec类，具体是ISpec2。
+
+简要说明：编译器优化可能重新读取共享变量，破坏多线程下的一致性检查。
+
+现在，输出：
+
+【最终结果】
+【是CISB - ISpec类】编译器优化可能重新读取mmap_cache共享变量，破坏了多线程下顺序敏感的一致性检查，导致竞争条件。

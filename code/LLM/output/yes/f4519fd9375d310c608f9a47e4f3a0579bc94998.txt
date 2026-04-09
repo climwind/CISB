@@ -1,0 +1,134 @@
+【Commit 原始内容】
+{
+  "id": "f4519fd9375d310c608f9a47e4f3a0579bc94998",
+  "year": "2019",
+  "message": "wil6210: make sure DR bit is read before rest of the status message\n\nDue to compiler optimization, it's possible that dr_bit (descriptor\nready) is read last from the status message.\nDue to race condition between HW writing the status message and\ndriver reading it, other fields that were read earlier (before dr_bit)\ncould have invalid values.\n\nFix this by explicitly reading the dr_bit first and then using rmb\nbefore reading the rest of the status message.",
+  "patches": {
+    "drivers/net/wireless/ath/wil6210/txrx_edma.c": "@@ -221,10 +221,17 @@ static int wil_ring_alloc_skb_edma(struct wil6210_priv *wil,\n }\n \n static inline\n-void wil_get_next_rx_status_msg(struct wil_status_ring *sring, void *msg)\n+void wil_get_next_rx_status_msg(struct wil_status_ring *sring, u8 *dr_bit,\n+\t\t\t\tvoid *msg)\n {\n-\tmemcpy(msg, (void *)(sring->va + (sring->elem_size * sring->swhead)),\n-\t       sring->elem_size);\n+\tstruct wil_rx_status_compressed *_msg;\n+\n+\t_msg = (struct wil_rx_status_compressed *)\n+\t\t(sring->va + (sring->elem_size * sring->swhead));\n+\t*dr_bit = WIL_GET_BITS(_msg->d0, 31, 31);\n+\t/* make sure dr_bit is read before the rest of status msg */\n+\trmb();\n+\tmemcpy(msg, (void *)_msg, sring->elem_size);\n }\n \n static inline void wil_sring_advance_swhead(struct wil_status_ring *sring)\n@@ -587,8 +594,7 @@ static bool wil_is_rx_idle_edma(struct wil6210_priv *wil)\n \t\tif (!sring->va)\n \t\t\tcontinue;\n \n-\t\twil_get_next_rx_status_msg(sring, msg);\n-\t\tdr_bit = wil_rx_status_get_desc_rdy_bit(msg);\n+\t\twil_get_next_rx_status_msg(sring, &dr_bit, msg);\n \n \t\t/* Check if there are unhandled RX status messages */\n \t\tif (dr_bit == sring->desc_rdy_pol)\n@@ -878,8 +884,7 @@ static struct sk_buff *wil_sring_reap_rx_edma(struct wil6210_priv *wil,\n \tBUILD_BUG_ON(sizeof(struct wil_rx_status_extended) > sizeof(skb->cb));\n \n again:\n-\twil_get_next_rx_status_msg(sring, msg);\n-\tdr_bit = wil_rx_status_get_desc_rdy_bit(msg);\n+\twil_get_next_rx_status_msg(sring, &dr_bit, msg);\n \n \t/* Completed handling all the ready status messages */\n \tif (dr_bit != sring->desc_rdy_pol)\n@@ -1135,12 +1140,15 @@ static int wil_tx_desc_map_edma(union wil_tx_desc *desc,\n }\n \n static inline void\n-wil_get_next_tx_status_msg(struct wil_status_ring *sring,\n+wil_get_next_tx_status_msg(struct wil_status_ring *sring, u8 *dr_bit,\n \t\t\t   struct wil_ring_tx_status *msg)\n {\n \tstruct wil_ring_tx_status *_msg = (struct wil_ring_tx_status *)\n \t\t(sring->va + (sring->elem_size * sring->swhead));\n \n+\t*dr_bit = _msg->desc_ready >> TX_STATUS_DESC_READY_POS;\n+\t/* make sure dr_bit is read before the rest of status msg */\n+\trmb();\n \t*msg = *_msg;\n }\n \n@@ -1169,8 +1177,7 @@ int wil_tx_sring_handler(struct wil6210_priv *wil,\n \tint used_before_complete;\n \tint used_new;\n \n-\twil_get_next_tx_status_msg(sring, &msg);\n-\tdr_bit = msg.desc_ready >> TX_STATUS_DESC_READY_POS;\n+\twil_get_next_tx_status_msg(sring, &dr_bit, &msg);\n \n \t/* Process completion messages while DR bit has the expected polarity */\n \twhile (dr_bit == sring->desc_rdy_pol) {\n@@ -1293,8 +1300,7 @@ int wil_tx_sring_handler(struct wil6210_priv *wil,\n \n \t\twil_sring_advance_swhead(sring);\n \n-\t\twil_get_next_tx_status_msg(sring, &msg);\n-\t\tdr_bit = msg.desc_ready >> TX_STATUS_DESC_READY_POS;\n+\t\twil_get_next_tx_status_msg(sring, &dr_bit, &msg);\n \t}\n \n \t/* shall we wake net queues? */",
+    "drivers/net/wireless/ath/wil6210/txrx_edma.h": "@@ -421,12 +421,6 @@ static inline u8 wil_rx_status_get_tid(void *msg)\n \t\treturn val & WIL_RX_EDMA_DLPF_LU_MISS_CID_TID_MASK;\n }\n \n-static inline int wil_rx_status_get_desc_rdy_bit(void *msg)\n-{\n-\treturn WIL_GET_BITS(((struct wil_rx_status_compressed *)msg)->d0,\n-\t\t\t    31, 31);\n-}\n-\n static inline int wil_rx_status_get_eop(void *msg) /* EoP = End of Packet */\n {\n \treturn WIL_GET_BITS(((struct wil_rx_status_compressed *)msg)->d0,"
+  }
+}
+
+【思维链】
+首先，任务分析补丁，判断原始代码是否可能受到“编译器引入的安全漏洞（CISB）”的影响。补丁提供了commit信息和修改前后的代码片段。
+
+commit信息： "wil6210: make sure DR bit is read before rest of the status message" 。描述说：由于编译器优化，dr_bit（描述符就绪位）可能最后被读取。由于硬件写入状态消息和驱动程序读取之间的竞争条件，在dr_bit之前读取的其他字段可能具有无效值。修复方法是显式先读取dr_bit，然后在读取状态消息的其余部分之前使用rmb()。
+
+补丁修改了两个文件：drivers/net/wireless/ath/wil6210/txrx_edma.c 和 drivers/net/wireless/ath/wil6210/txrx_edma.h。
+
+在txrx_edma.c中：
+
+- 修改了函数wil_get_next_rx_status_msg和wil_get_next_tx_status_msg，添加了参数u8 *dr_bit，并先读取dr_bit，然后使用rmb()，再复制其余部分。
+
+- 调用这些函数的地方也相应修改，不再单独调用wil_rx_status_get_desc_rdy_bit。
+
+在txrx_edma.h中，删除了静态内联函数wil_rx_status_get_desc_rdy_bit。
+
+原始代码：
+
+- 在wil_get_next_rx_status_msg中，使用memcpy复制整个状态消息到msg。
+
+- 然后调用wil_rx_status_get_desc_rdy_bit(msg)来提取dr_bit。
+
+修改后：
+
+- wil_get_next_rx_status_msg先读取dr_bit（通过指针参数返回），然后使用rmb()，再memcpy整个消息。
+
+类似地，对于tx状态消息。
+
+现在，按照步骤进行推理。
+
+**步骤一：理解程序员的原始安全意图。**
+
+原始代码试图从状态消息中读取数据。状态消息由硬件写入，驱动程序读取。dr_bit（描述符就绪位）指示消息是否有效。程序员的意图是确保在读取状态消息的其他字段之前，先检查dr_bit以确认消息有效，避免读取无效数据。但由于原始代码先memcpy整个消息，然后提取dr_bit，可能存在竞争条件：硬件可能正在写入消息，而驱动程序读取时，如果dr_bit最后被读取，其他字段可能还在变化中，导致读取到不一致或无效的值。安全目标是防止数据完整性问题或竞争条件导致的错误行为。
+
+从commit消息看，原始代码存在漏洞：由于编译器优化，dr_bit可能最后被读取，导致竞争条件。所以，原始代码本应确保dr_bit先被读取，但未达成。
+
+**步骤二：识别编译器的假设与优化行为。**
+
+代码是用C语言编写的。编译器可能假设内存访问可以重新排序，除非有明确的屏障。在原始代码中，memcpy复制整个消息，然后调用函数提取dr_bit。编译器可能优化memcpy和后续的位提取，例如重新排列读取顺序，或者内联函数并优化掉冗余访问。
+
+具体来说，memcpy可能被实现为一系列字节读取，编译器可能认为这些读取的顺序不重要，并可能重新排列它们。类似地，在提取dr_bit时，它访问消息的特定部分。编译器可能假设没有数据依赖性，并优化读取顺序。
+
+**步骤三：分析“意图”与“假设”之间的冲突。**
+
+程序员的意图是dr_bit应该先被读取，以确保消息有效后再读取其他字段。但编译器假设内存访问可以自由重排，因为没有显式的内存屏障。因此，编译器可能将dr_bit的读取移到其他字段之后，破坏了程序员的顺序假设，导致竞争条件。
+
+冲突点是程序员依赖读取顺序来保证数据一致性，而编译器假设没有顺序约束并据此优化。
+
+**步骤四：判断是否满足CISB的四个必要条件。**
+
+1. **源代码安全**：原始代码在没有编译器优化时，在目标机器上是否安全？假设没有优化，memcpy按顺序复制字节，然后提取dr_bit，但即便如此，由于竞争条件，如果硬件在写入过程中，驱动程序读取可能看到部分更新。但commit消息指出是由于编译器优化导致dr_bit最后被读取，加剧了问题。原始代码可能本身就有竞争条件风险，但编译器优化引入了漏洞。条件要求“在没有经过编译器优化时，在目标机器上没有安全问题”。这里，即使没有优化，原始代码可能仍有竞争条件，因为硬件和驱动程序并发访问。但commit说“Due to compiler optimization, it's possible that dr_bit is read last”，所以原始代码的意图是顺序读取，但编译器优化改变了顺序。所以，如果没有优化，顺序可能保持，但竞争条件仍可能存在？程序员意图是通过顺序读取来减轻竞争条件，但原始代码没有强制顺序。所以，可能原始代码在没有优化时是安全的？不完全是，因为竞争条件本质上是并发的。但条件说“没有安全问题”，可能指在理想情况下安全。我需要仔细看。
+
+条件1：原始代码在没有经过编译器优化时，在目标机器上没有安全问题。注意：如果开发者利用了未定义行为来实现特定目的，则该未定义行为并非源代码中的安全问题。
+
+原始代码中，没有使用未定义行为。它只是memcpy和函数调用。竞争条件可能由硬件并发引起，但程序员意图是通过软件顺序来管理。如果没有编译器优化，memcpy可能按顺序执行，dr_bit可能在复制过程中被读取，但memcpy复制整个消息，所以dr_bit是消息的一部分。在memcpy之后提取dr_bit，dr_bit是从复制后的消息中读取的。所以，即使没有优化，dr_bit的读取在memcpy之后，但memcpy已经复制了整个消息，所以dr_bit是复制后的值。问题在于，在memcpy过程中，如果硬件正在写入，复制可能看到不一致的状态。但dr_bit的读取是在memcpy之后，所以它基于复制后的消息。编译器优化可能导致dr_bit在memcpy之前或之中被读取？不，原始代码是memcpy整个消息，然后提取dr_bit。优化可能内联提取函数，并重新排列内存访问，使得dr_bit的读取在memcpy的其他部分之前或之后。
+
+更准确地说，原始代码中，wil_get_next_rx_status_msg使用memcpy复制消息，然后wil_rx_status_get_desc_rdy_bit访问消息中的d0字段的位。编译器可能优化掉memcpy，直接读取字段，并可能改变顺序。
+
+条件1要求在没有优化时安全。假设没有优化，代码按编写顺序执行：先memcpy（复制所有字节），然后调用函数提取dr_bit。这应该是一致的，因为memcpy完成后消息被复制，然后dr_bit从复制中提取。但硬件并发可能导致memcpy看到中间状态。然而，程序员的意图可能是依赖dr_bit来指示消息是否准备好。如果dr_bit指示消息无效，其他字段可能被忽略。但在原始代码中，dr_bit在memcpy之后读取，所以如果memcpy复制了部分更新的消息，dr_bit可能已经设置，但其他字段无效。commit说“other fields that were read earlier (before dr_bit) could have invalid values”，意思是由于编译器优化，dr_bit可能最后被读取，所以其他字段在dr_bit之前被读取，可能无效。但在原始代码顺序中，memcpy先读取所有字段（包括dr_bit），然后提取dr_bit。所以，memcpy读取所有字段时，dr_bit也被读取了，但提取是之后的事。编译器优化可能将dr_bit的提取移到memcpy之前或之后，改变顺序。
+
+我认为，原始代码的意图是dr_bit应该作为第一个被读取的字段，但代码没有强制这一点，所以编译器优化可能破坏顺序。因此，在没有优化时，顺序可能保持，但代码本身没有确保dr_bit先读，所以可能不安全。但条件1说“没有安全问题”，可能指的是如果没有优化，代码按顺序执行，安全属性成立？我需要根据定义判断。
+
+条件1：源代码安全：原始代码在没有经过编译器优化时，在目标机器上没有安全问题。注意：如果开发者利用了未定义行为来实现某个特定目的或功能，则该未定义行为不能作为判断源代码不存在CISB的依据。
+
+这里，没有未定义行为。原始代码使用memcpy和位提取，都是定义良好的。问题在于内存顺序和竞争条件，这涉及硬件并发，但软件代码是顺序的。在没有优化时，memcpy按顺序复制字节，但字节顺序可能不保证字段读取顺序？memcpy是字节复制，所以它按地址顺序复制字节。对于结构体，它可能从低地址到高地址复制。dr_bit是d0字段的最高位（位31），所以如果结构体按字节顺序复制，dr_bit所在的字节可能被较早或较晚复制，取决于字节顺序和内存布局。但编译器可能优化memcpy为直接结构体赋值或字段读取。
+
+为了简化，commit明确指出由于编译器优化导致问题，所以原始代码在没有优化时可能安全，但优化引入了漏洞。条件1可能满足，因为原始代码意图正确，但编译器优化改变了行为。
+
+2. **编译器引入**：编译器优化在编译期间修改代码，创建了漏洞。是的，commit说“Due to compiler optimization, it's possible that dr_bit is read last”，所以优化改变了读取顺序，引入了竞争条件漏洞。
+
+3. **代码合规**：原始代码不包含任何语言关键字的错误使用。没有错误使用关键字。memcpy和函数调用都是正确的。没有未定义行为被利用？原始代码没有故意利用未定义行为；它只是标准C代码。所以合规。
+
+4. **编译器正确**：编译器优化是形式正确的，即编译器不违反任何语言规范。编译器优化内存访问顺序，因为C语言没有指定内存访问的顺序，除非有volatile或屏障。所以编译器可以自由重排没有依赖的访问，这是符合语言规范的。
+
+因此，四个条件似乎都满足。
+
+**步骤五：分类与漏洞模式匹配。**
+
+如果四个条件均满足，则判断属于哪一类CISB。
+
+A. 隐式规范类（ISpec）或B. 正交规范类（OSpec）。
+
+检查模式：
+
+ISpec1：安全检查被移除。这里不是移除检查，而是顺序问题。
+
+ISpec2：顺序敏感的安全操作被重排。是的，程序依赖dr_bit先读，但编译器重排了读取顺序。
+
+ISpec3：不安全指令被引入或替换。不直接匹配。
+
+OSpec1：敏感数据清零操作被删除。不相关。
+
+OSpec2：执行时间保证被破坏。不是时间保证。
+
+OSpec3：引入推测执行侧信道。不是推测执行。
+
+所以，匹配ISpec2：顺序敏感的安全操作被重排。
+
+在补丁中，添加了rmb()来强制内存顺序，这确认了顺序敏感。
+
+因此，这属于ISpec类，具体是ISpec2。
+
+输出格式：最后一行直接输出判断结果。
+
+判断结果：【是CISB - ISpec类】 或更具体。
+
+根据模式，是ISpec2。
+
+简要说明：编译器优化重排了dr_bit的读取顺序，导致竞争条件下可能读取无效状态消息。
+
+所以，输出：【是CISB - ISpec类】编译器优化重排了状态消息的读取顺序，破坏了dr_bit先读的安全意图，引入竞争条件漏洞。
+
+但指定为ISpec类，或许直接写ISpec。
+
+在输出中，需要指定是ISpec还是OSpec，并给出类。
+
+模式是ISpec2，但输出说【是CISB - [ISpec/OSpec]类】，所以我可以写ISpec。
+
+简要说明：由于编译器优化，dr_bit读取被重排到最后，导致竞争条件下读取无效数据。
+
+最终输出。
+
+【最终结果】
+【是CISB - ISpec类】编译器优化重排了状态消息的读取顺序，导致dr_bit可能最后被读取，破坏了程序依赖的检查后使用顺序，在硬件竞争条件下引入数据完整性漏洞。

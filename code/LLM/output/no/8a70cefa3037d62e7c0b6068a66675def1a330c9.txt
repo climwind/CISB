@@ -1,0 +1,38 @@
+【Commit 原始内容】
+{
+  "id": "8a70cefa3037d62e7c0b6068a66675def1a330c9",
+  "year": "2015",
+  "message": "ieee802154: Fix sockaddr_ieee802154 implicit padding information leak.\n\nThe AF_IEEE802154 sockaddr looks like this:\n\n\tstruct sockaddr_ieee802154 {\n\t\tsa_family_t family; /* AF_IEEE802154 */\n\t\tstruct ieee802154_addr_sa addr;\n\t};\n\n\tstruct ieee802154_addr_sa {\n\t\tint addr_type;\n\t\tu16 pan_id;\n\t\tunion {\n\t\t\tu8 hwaddr[IEEE802154_ADDR_LEN];\n\t\t\tu16 short_addr;\n\t\t};\n\t};\n\nOn most architectures there will be implicit structure padding here,\nin two different places:\n\n* In struct sockaddr_ieee802154, two bytes of padding between 'family'\n  (unsigned short) and 'addr', so that 'addr' starts on a four byte\n  boundary.\n\n* In struct ieee802154_addr_sa, two bytes at the end of the structure,\n  to make the structure 16 bytes.\n\nWhen calling recvmsg(2) on a PF_IEEE802154 SOCK_DGRAM socket, the\nieee802154 stack constructs a struct sockaddr_ieee802154 on the\nkernel stack without clearing these padding fields, and, depending\non the addr_type, between four and ten bytes of uncleared kernel\nstack will be copied to userspace.\n\nWe can't just insert two 'u16 __pad's in the right places and zero\nthose before copying an address to userspace, as not all architectures\ninsert this implicit padding -- from a quick test it seems that avr32,\ncris and m68k don't insert this padding, while every other architecture\nthat I have cross compilers for does insert this padding.\n\nThe easiest way to plug the leak is to just memset the whole struct\nsockaddr_ieee802154 before filling in the fields we want to fill in,\nand that's what this patch does.",
+  "patches": {
+    "net/ieee802154/socket.c": "@@ -731,6 +731,12 @@ static int dgram_recvmsg(struct sock *sk, struct msghdr *msg, size_t len,\n \tsock_recv_ts_and_drops(msg, sk, skb);\n \n \tif (saddr) {\n+\t\t/* Clear the implicit padding in struct sockaddr_ieee802154\n+\t\t * (16 bits between 'family' and 'addr') and in struct\n+\t\t * ieee802154_addr_sa (16 bits at the end of the structure).\n+\t\t */\n+\t\tmemset(saddr, 0, sizeof(*saddr));\n+\n \t\tsaddr->family = AF_IEEE802154;\n \t\tieee802154_addr_to_sa(&saddr->addr, &mac_cb(skb)->source);\n \t\t*addr_len = sizeof(*saddr);"
+  }
+}
+
+【思维链】
+我们被要求分析一个补丁，判断原始代码是否可能受到“编译器引入的安全漏洞（CISB）”的影响。补丁信息以JSON格式给出，描述了修复一个信息泄露漏洞。补丁在`dgram_recvmsg`函数中，在填充`saddr`字段之前增加了`memset(saddr, 0, sizeof(*saddr));`。
+
+步骤一：理解程序员的原始安全意图。
+原始代码中，在填充`saddr`之前没有将其清零。程序员的安全意图是确保从内核栈到用户空间的结构体`sockaddr_ieee802154`不会泄露内核栈上的未初始化数据（即隐式填充字段）。由于结构体中有填充字节，如果不清零，这些填充字节可能包含敏感的内核栈数据。因此，原始代码试图防止信息泄露，但未达到该目标，因为填充字节未初始化。修改是为了修复这个信息泄露漏洞。
+
+步骤二：识别编译器的假设与优化行为。
+编译器编译原始代码时，可能假设结构体的填充字节的内容是无关紧要的，因为程序员没有显式初始化它们。编译器可能会进行优化，例如消除冗余存储或重新排列内存操作。但在这个补丁中，主要问题是未初始化的内存被复制到用户空间。编译器不会自动插入清零操作，因为它认为未初始化的局部变量（如果未显式初始化）的值是未定义的，使用它们是未定义行为。然而，在这个上下文中，`saddr`是指向一个结构体的指针，该结构体在栈上分配（可能是调用者提供的？实际上，`saddr`是函数参数，指向一个输出结构体）。原始代码中，程序员只显式设置了`family`字段和`addr`字段，但没有设置填充字节。编译器不会假设这些填充字节需要被清零。
+
+步骤三：分析“意图”与“假设”之间的冲突。
+程序员的原始安全意图是防止信息泄露，即确保填充字节不被泄露。但原始代码没有显式清零填充字节，因此编译器没有义务清零它们。编译器可能假设程序员会初始化所有需要初始化的部分。冲突在于：程序员依赖结构体在栈上分配时填充字节是零或无害，但编译器没有保证这一点。然而，这不是编译器优化引入的漏洞，而是程序员没有正确初始化内存。
+
+步骤四：判断是否满足CISB的四个必要条件。
+1、源代码安全：原始代码在没有经过编译器优化时，在目标机器上没有安全问题？不，原始代码即使在最简单的编译下（无优化）也会泄露未初始化的栈内存，因为填充字节没有被清零。所以，即使没有编译器优化，该漏洞也存在。因此，条件1不满足。
+2、编译器引入：漏洞是否由编译器优化在编译期间修改代码创建？从补丁描述看，漏洞是由于隐式填充字段未清零导致的，这不是编译器优化引入的，而是源代码本身缺失了清零操作。即使编译器优化，比如重排指令，可能也不会改变这个本质。所以，条件2不满足。
+3、代码合规：原始代码不包含任何语言关键字的错误使用。原始代码看起来语法正确，但使用了未初始化的内存（通过复制到用户空间），这可能是未定义行为。但开发者是否利用未定义行为来实现特定目的？显然不是，他们只是疏忽了。所以，原始代码可能包含未定义行为，但这不是为了特定目的而利用的未定义行为。因此，可能不符合“代码合规”条件。但注意条件3的注意：如果开发者利用了未定义行为来实现某个特定目的或功能，则该未定义行为视为代码合规。这里开发者并没有利用未定义行为，而是疏忽导致的。所以，原始代码可能不合规，因为它可能导致未定义行为（将未初始化的内存复制到用户空间可能是未定义行为？实际上，C标准中，读取未初始化的内存是未定义行为。但是，在这个上下文中，复制到用户空间可能不算“读取”用于程序逻辑？但内核代码中，复制到用户空间是一种输出，读取未初始化的内存确实是未定义行为。因此，原始代码可能包含未定义行为，但开发者并非有意利用它。所以，条件3可能不满足。
+4、编译器正确：编译器优化是形式正确的，即编译器不违反任何语言规范。如果编译器没有进行任何违规优化，那么它是正确的。
+
+由于条件1和2不满足，这不是一个CISB。
+
+步骤五：分类与漏洞模式匹配。
+由于不满足四个必要条件，不需要分类。
+
+输出结果：
+【不是CISB】 + 原因：原始代码即使在没有编译器优化时也存在安全漏洞（信息泄露），漏洞不是由编译器优化引入的。
+
+【最终结果】
+【不是CISB】原始代码本身存在信息泄露漏洞（未初始化填充字节），该漏洞在无编译器优化时即存在，并非由编译器优化引入。

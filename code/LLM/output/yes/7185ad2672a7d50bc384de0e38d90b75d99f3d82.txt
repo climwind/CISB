@@ -1,0 +1,63 @@
+【Commit 原始内容】
+{
+  "id": "7185ad2672a7d50bc384de0e38d90b75d99f3d82",
+  "year": "2014",
+  "message": "crypto: memzero_explicit - make sure to clear out sensitive data\n\nRecently, in commit 13aa93c70e71 (\"random: add and use memzero_explicit()\nfor clearing data\"), we have found that GCC may optimize some memset()\ncases away when it detects a stack variable is not being used anymore\nand going out of scope. This can happen, for example, in cases when we\nare clearing out sensitive information such as keying material or any\ne.g. intermediate results from crypto computations, etc.\n\nWith the help of Coccinelle, we can figure out and fix such occurences\nin the crypto subsytem as well. Julia Lawall provided the following\nCoccinelle program:\n\n  @@\n  type T;\n  identifier x;\n  @@\n\n  T x;\n  ... when exists\n      when any\n  -memset\n  +memzero_explicit\n     (&x,\n  -0,\n     ...)\n  ... when != x\n      when strict\n\n  @@\n  type T;\n  identifier x;\n  @@\n\n  T x[...];\n  ... when exists\n      when any\n  -memset\n  +memzero_explicit\n     (x,\n  -0,\n     ...)\n  ... when != x\n      when strict\n\nTherefore, make use of the drop-in replacement memzero_explicit() for\nexactly such cases instead of using memset().",
+  "patches": {
+    "crypto/cts.c": "@@ -202,7 +202,8 @@ static int cts_cbc_decrypt(struct crypto_cts_ctx *ctx,\n \t/* 5. Append the tail (BB - Ln) bytes of Xn (tmp) to Cn to create En */\n \tmemcpy(s + bsize + lastn, tmp + lastn, bsize - lastn);\n \t/* 6. Decrypt En to create Pn-1 */\n-\tmemset(iv, 0, sizeof(iv));\n+\tmemzero_explicit(iv, sizeof(iv));\n+\n \tsg_set_buf(&sgsrc[0], s + bsize, bsize);\n \tsg_set_buf(&sgdst[0], d, bsize);\n \terr = crypto_blkcipher_decrypt_iv(&lcldesc, sgdst, sgsrc, bsize);",
+    "crypto/sha1_generic.c": "@@ -64,7 +64,7 @@ int crypto_sha1_update(struct shash_desc *desc, const u8 *data,\n \t\t\tsrc = data + done;\n \t\t} while (done + SHA1_BLOCK_SIZE <= len);\n \n-\t\tmemset(temp, 0, sizeof(temp));\n+\t\tmemzero_explicit(temp, sizeof(temp));\n \t\tpartial = 0;\n \t}\n \tmemcpy(sctx->buffer + partial, src, len - done);",
+    "crypto/sha256_generic.c": "@@ -210,10 +210,9 @@ static void sha256_transform(u32 *state, const u8 *input)\n \n \t/* clear any sensitive info... */\n \ta = b = c = d = e = f = g = h = t1 = t2 = 0;\n-\tmemset(W, 0, 64 * sizeof(u32));\n+\tmemzero_explicit(W, 64 * sizeof(u32));\n }\n \n-\n static int sha224_init(struct shash_desc *desc)\n {\n \tstruct sha256_state *sctx = shash_desc_ctx(desc);\n@@ -316,7 +315,7 @@ static int sha224_final(struct shash_desc *desc, u8 *hash)\n \tsha256_final(desc, D);\n \n \tmemcpy(hash, D, SHA224_DIGEST_SIZE);\n-\tmemset(D, 0, SHA256_DIGEST_SIZE);\n+\tmemzero_explicit(D, SHA256_DIGEST_SIZE);\n \n \treturn 0;\n }",
+    "crypto/sha512_generic.c": "@@ -238,7 +238,7 @@ static int sha384_final(struct shash_desc *desc, u8 *hash)\n \tsha512_final(desc, D);\n \n \tmemcpy(hash, D, 48);\n-\tmemset(D, 0, 64);\n+\tmemzero_explicit(D, 64);\n \n \treturn 0;\n }",
+    "crypto/tgr192.c": "@@ -612,7 +612,7 @@ static int tgr160_final(struct shash_desc *desc, u8 * out)\n \n \ttgr192_final(desc, D);\n \tmemcpy(out, D, TGR160_DIGEST_SIZE);\n-\tmemset(D, 0, TGR192_DIGEST_SIZE);\n+\tmemzero_explicit(D, TGR192_DIGEST_SIZE);\n \n \treturn 0;\n }\n@@ -623,7 +623,7 @@ static int tgr128_final(struct shash_desc *desc, u8 * out)\n \n \ttgr192_final(desc, D);\n \tmemcpy(out, D, TGR128_DIGEST_SIZE);\n-\tmemset(D, 0, TGR192_DIGEST_SIZE);\n+\tmemzero_explicit(D, TGR192_DIGEST_SIZE);\n \n \treturn 0;\n }",
+    "crypto/vmac.c": "@@ -613,7 +613,7 @@ static int vmac_final(struct shash_desc *pdesc, u8 *out)\n \t}\n \tmac = vmac(ctx->partial, ctx->partial_size, nonce, NULL, ctx);\n \tmemcpy(out, &mac, sizeof(vmac_t));\n-\tmemset(&mac, 0, sizeof(vmac_t));\n+\tmemzero_explicit(&mac, sizeof(vmac_t));\n \tmemset(&ctx->__vmac_ctx, 0, sizeof(struct vmac_ctx));\n \tctx->partial_size = 0;\n \treturn 0;",
+    "crypto/wp512.c": "@@ -1102,8 +1102,8 @@ static int wp384_final(struct shash_desc *desc, u8 *out)\n \tu8 D[64];\n \n \twp512_final(desc, D);\n-\tmemcpy (out, D, WP384_DIGEST_SIZE);\n-\tmemset (D, 0, WP512_DIGEST_SIZE);\n+\tmemcpy(out, D, WP384_DIGEST_SIZE);\n+\tmemzero_explicit(D, WP512_DIGEST_SIZE);\n \n \treturn 0;\n }\n@@ -1113,8 +1113,8 @@ static int wp256_final(struct shash_desc *desc, u8 *out)\n \tu8 D[64];\n \n \twp512_final(desc, D);\n-\tmemcpy (out, D, WP256_DIGEST_SIZE);\n-\tmemset (D, 0, WP512_DIGEST_SIZE);\n+\tmemcpy(out, D, WP256_DIGEST_SIZE);\n+\tmemzero_explicit(D, WP512_DIGEST_SIZE);\n \n \treturn 0;\n }"
+  }
+}
+
+【思维链】
+首先，任务是根据给定的补丁分析原始代码是否可能受到“编译器引入的安全漏洞（CISB）”的影响。补丁是JSON格式的，包含了commit信息、修改内容及前后代码片段。我需要按照五个步骤进行结构化推理，但最终输出时只输出判断结果。
+
+补丁内容显示，这个commit是为了修复GCC可能优化掉memset()的情况，导致敏感数据没有被清零。修改是将memset替换为memzero_explicit，以确保数据被清除。
+
+步骤一：理解程序员的原始安全意图。
+
+- 在原始代码中，程序员使用memset来清零敏感数据，如加密密钥、中间计算结果等。安全意图是防止信息泄露，确保在数据不再需要时，敏感信息被完全擦除，避免被意外访问或泄露。
+
+步骤二：识别编译器的假设与优化行为。
+
+- 编译器可能假设某些变量在后续不再使用，因此可能优化掉看似冗余的操作，如memset清零。具体来说，如果编译器检测到一个栈变量在作用域结束后不再被使用，它可能会认为清零操作是多余的，从而消除它。这是死代码消除优化的一种。
+
+- 语言规范（如C语言）中，memset是标准库函数，但编译器可以基于“as-if”规则进行优化，只要程序的可观察行为不变。如果清零后的数据不再被访问，编译器可能认为删除memset不会影响行为。
+
+步骤三：分析“意图”与“假设”之间的冲突。
+
+- 程序员的意图是安全地清除敏感数据，以防止泄露。但编译器假设清零操作是冗余的，因为变量不再被使用，所以优化掉它。这导致冲突：程序员依赖memset来执行安全清除，而编译器认为这个操作不必要，从而移除它，留下敏感数据在内存中。
+
+步骤四：判断是否满足CISB的四个必要条件。
+
+1. 源代码安全：原始代码在没有编译器优化时，在目标机器上没有安全问题。程序员使用memset来清零数据，这意图是安全的。但如果编译器优化掉它，数据不会被清零。注意，开发者没有利用未定义行为来实现特定目的；memset的使用是标准的。所以，原始代码在无优化时是安全的。
+
+2. 编译器引入：编译器优化在编译期间修改代码，创建了漏洞。是的，编译器优化掉memset，导致数据未清零，从而可能泄露敏感信息。
+
+3. 代码合规：原始代码不包含任何语言关键字的错误使用。memset是标准函数，使用正确。没有未定义行为被利用。所以，代码合规。
+
+4. 编译器正确：编译器优化是形式正确的，即编译器不违反任何语言规范。编译器基于变量不再使用的假设进行死代码消除，这是允许的优化，符合语言规范。所以，编译器正确。
+
+所有四个条件都满足。
+
+步骤五：分类与漏洞模式匹配。
+
+- 这属于OSpec类（正交规范类）。具体模式：OSpec1：敏感数据清零操作被删除。原始代码中的memset被编译器优化掉，导致敏感数据未被清零。
+
+- 补丁中提到了GCC可能优化掉memset，这正是OSpec1的模式。
+
+输出格式：最后一行输出判断结果，格式为【是CISB - [ISpec/OSpec]类】 + 简要说明或【不是CISB】 + 原因。
+
+所以，输出应该是：【是CISB - OSpec类】敏感数据清零操作被编译器优化删除。
+
+在补丁中，多个文件都做了类似修改，从memset改为memzero_explicit。memzero_explicit可能是一个特殊函数，旨在防止编译器优化，确保清零操作被执行。
+
+因此，综合推理，这是一个CISB案例。
+
+【最终结果】
+【是CISB - OSpec类】敏感数据清零操作被编译器优化删除。

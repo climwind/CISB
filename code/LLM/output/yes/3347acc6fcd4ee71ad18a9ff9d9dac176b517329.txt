@@ -1,0 +1,86 @@
+【Commit 原始内容】
+{
+  "id": "3347acc6fcd4ee71ad18a9ff9d9dac176b517329",
+  "year": "2020",
+  "message": "compiler.h: fix barrier_data() on clang\n\nCommit 815f0ddb346c (\"include/linux/compiler*.h: make compiler-*.h\nmutually exclusive\") neglected to copy barrier_data() from\ncompiler-gcc.h into compiler-clang.h.\n\nThe definition in compiler-gcc.h was really to work around clang's more\naggressive optimization, so this broke barrier_data() on clang, and\nconsequently memzero_explicit() as well.\n\nFor example, this results in at least the memzero_explicit() call in\nlib/crypto/sha256.c:sha256_transform() being optimized away by clang.\n\nFix this by moving the definition of barrier_data() into compiler.h.\n\nAlso move the gcc/clang definition of barrier() into compiler.h,\n__memory_barrier() is icc-specific (and barrier() is already defined\nusing it in compiler-intel.h) and doesn't belong in compiler.h.\n\n[rdunlap@infradead.org: fix ALPHA builds when SMP is not enabled]\n\nLink: https://lkml.kernel.org/r/20201101231835.4589-1-rdunlap@infradead.org\nFixes: 815f0ddb346c (\"include/linux/compiler*.h: make compiler-*.h mutually exclusive\")\nLink: https://lkml.kernel.org/r/20201014212631.207844-1-nivedita@alum.mit.edu",
+  "patches": {
+    "include/asm-generic/barrier.h": "@@ -13,6 +13,7 @@\n \n #ifndef __ASSEMBLY__\n \n+#include <linux/compiler.h>\n #include <asm/rwonce.h>\n \n #ifndef nop",
+    "include/linux/compiler-clang.h": "@@ -60,12 +60,6 @@\n #define COMPILER_HAS_GENERIC_BUILTIN_OVERFLOW 1\n #endif\n \n-/* The following are for compatibility with GCC, from compiler-gcc.h,\n- * and may be redefined here because they should not be shared with other\n- * compilers, like ICC.\n- */\n-#define barrier() __asm__ __volatile__(\"\" : : : \"memory\")\n-\n #if __has_feature(shadow_call_stack)\n # define __noscs\t__attribute__((__no_sanitize__(\"shadow-call-stack\")))\n #endif",
+    "include/linux/compiler-gcc.h": "@@ -15,25 +15,6 @@\n # error Sorry, your version of GCC is too old - please use 4.9 or newer.\n #endif\n \n-/* Optimization barrier */\n-\n-/* The \"volatile\" is due to gcc bugs */\n-#define barrier() __asm__ __volatile__(\"\": : :\"memory\")\n-/*\n- * This version is i.e. to prevent dead stores elimination on @ptr\n- * where gcc and llvm may behave differently when otherwise using\n- * normal barrier(): while gcc behavior gets along with a normal\n- * barrier(), llvm needs an explicit input variable to be assumed\n- * clobbered. The issue is as follows: while the inline asm might\n- * access any memory it wants, the compiler could have fit all of\n- * @ptr into memory registers instead, and since @ptr never escaped\n- * from that, it proved that the inline asm wasn't touching any of\n- * it. This version works well with both compilers, i.e. we're telling\n- * the compiler that the inline asm absolutely may see the contents\n- * of @ptr. See also: https://llvm.org/bugs/show_bug.cgi?id=15495\n- */\n-#define barrier_data(ptr) __asm__ __volatile__(\"\": :\"r\"(ptr) :\"memory\")\n-\n /*\n  * This macro obfuscates arithmetic on a variable address so that gcc\n  * shouldn't recognize the original var, and make assumptions about it.",
+    "include/linux/compiler.h": "@@ -80,11 +80,25 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,\n \n /* Optimization barrier */\n #ifndef barrier\n-# define barrier() __memory_barrier()\n+/* The \"volatile\" is due to gcc bugs */\n+# define barrier() __asm__ __volatile__(\"\": : :\"memory\")\n #endif\n \n #ifndef barrier_data\n-# define barrier_data(ptr) barrier()\n+/*\n+ * This version is i.e. to prevent dead stores elimination on @ptr\n+ * where gcc and llvm may behave differently when otherwise using\n+ * normal barrier(): while gcc behavior gets along with a normal\n+ * barrier(), llvm needs an explicit input variable to be assumed\n+ * clobbered. The issue is as follows: while the inline asm might\n+ * access any memory it wants, the compiler could have fit all of\n+ * @ptr into memory registers instead, and since @ptr never escaped\n+ * from that, it proved that the inline asm wasn't touching any of\n+ * it. This version works well with both compilers, i.e. we're telling\n+ * the compiler that the inline asm absolutely may see the contents\n+ * of @ptr. See also: https://llvm.org/bugs/show_bug.cgi?id=15495\n+ */\n+# define barrier_data(ptr) __asm__ __volatile__(\"\": :\"r\"(ptr) :\"memory\")\n #endif\n \n /* workaround for GCC PR82365 if needed */"
+  }
+}
+
+【思维链】
+首先，任务是分析一个补丁，判断原始代码是否可能受到“编译器引入的安全漏洞（CISB）”的影响。补丁以JSON格式提供，我需要按照五个步骤进行推理，但输出时只输出判断结果，格式为：【是CISB - [ISpec/OSpec]类】 + 简要说明 或 【不是CISB】 + 原因。
+
+补丁内容是关于Linux内核中编译器相关头文件的修改。具体地，补丁修复了barrier_data()在clang上的问题。关键点是：barrier_data()用于防止死存储消除，特别是在memzero_explicit()中，用于安全地清零敏感数据。
+
+步骤一：理解程序员的原始安全意图。
+
+- 原始代码中，barrier_data()在compiler-gcc.h中定义，用于防止编译器优化掉对指针ptr的存储操作。注释说明它是为了阻止gcc和llvm（clang）在优化时消除死存储。安全意图是确保敏感数据被清零，防止信息泄露。memzero_explicit()使用barrier_data()来确保清零操作不会被编译器优化掉。
+
+- 补丁的commit信息提到，由于之前的修改，barrier_data()在clang中被遗漏，导致memzero_explicit()调用被优化掉。例如，在lib/crypto/sha256.c:sha256_transform()中的memzero_explicit()被clang优化掉了。
+
+- 所以，程序员的原始安全意图是：使用barrier_data()作为一个优化屏障，确保对指针指向内存的修改不会被编译器消除，从而保证敏感数据清零操作的有效性，防止数据残留。
+
+步骤二：识别编译器的假设与优化行为。
+
+- 编译器（尤其是clang）会进行积极的优化，如死代码消除（dead store elimination）。如果编译器认为某个存储操作是冗余的或无效的，它可能会删除这些操作。
+
+- 在原始代码中，barrier_data()通过内联汇编告诉编译器，内联汇编可能会访问指针ptr的内容，因此编译器不能假设ptr没有被修改，从而保留相关的存储操作。
+
+- 编译器的假设：在没有显式依赖的情况下，编译器可能假设某些变量没有被外部操作修改，并据此优化掉看似冗余的存储。
+
+步骤三：分析“意图”与“假设”之间的冲突。
+
+- 程序员的意图是确保清零操作不被优化掉，但编译器的优化行为可能消除这些操作，因为它们看起来是死存储（存储后不再使用）。
+
+- 冲突点：程序员依赖barrier_data()来阻止优化，但如果在clang上barrier_data()定义缺失，编译器会假设没有外部依赖，从而优化掉清零操作。
+
+步骤四：判断是否满足CISB的四个必要条件。
+
+1. 源代码安全：原始代码在没有编译器优化时，在目标机器上没有安全问题。这里，原始代码意图是安全的，它使用了barrier_data()来确保清零。但如果barrier_data()在clang上缺失，那么源代码可能依赖于一个缺失的定义，导致不安全。但补丁显示原始代码在compiler-gcc.h中定义了barrier_data()，而在compiler-clang.h中遗漏了。所以，在clang编译时，barrier_data()可能被错误定义或缺失，导致memzero_explicit()不安全。但条件一是关于“原始代码在没有经过编译器优化时”，这有点模糊。CISB条件强调编译器优化引入漏洞。在这里，漏洞是由于编译器优化消除了操作，而这是由于缺少barrier_data()定义。
+
+- 注意：条件一说“原始代码在没有经过编译器优化时，在目标机器上没有安全问题”。但在这里，如果barrier_data()缺失，那么即使没有优化，代码可能也不安全？不，barrier_data()本身是一个编译器屏障；如果缺失，编译器可能会应用优化。但条件一假设没有优化时安全。我认为关键是：原始代码（在修复前）在clang上编译时，由于barrier_data()缺失，编译器优化引入了漏洞。所以，原始代码的意图是安全的，但实现有缺陷。
+
+- 重新读条件一：“源代码安全：原始代码在没有经过编译器优化时，在目标机器上没有安全问题”。这里“没有经过编译器优化”可能指不应用任何优化，直接编译。在这种情况下，即使barrier_data()缺失，如果编译器不优化，清零操作可能仍然执行。但编译器的优化是默认开启的。所以，原始代码可能依赖于barrier_data()来防止优化，但缺失时，优化导致不安全。
+
+- 条件一还说：“如果开发者利用未定义行为来实现某个特定目的或功能，视为该未定义行为并非源代码中的安全问题”。这里没有提到未定义行为，而是编译器优化。
+
+- 我认为，原始代码的安全意图是好的，但实现中barrier_data()在clang上缺失，导致编译器优化时消除了安全操作。
+
+2. 编译器引入：编译器优化在编译期间修改代码，创建了漏洞。是的，在clang上，由于barrier_data()缺失，编译器优化掉了memzero_explicit()调用，创建了漏洞（敏感数据未被清零）。
+
+3. 代码合规：原始代码不包含任何语言关键字的错误使用。barrier_data()使用内联汇编，是合规的。没有明显的错误使用。
+
+4. 编译器正确：编译器优化是形式正确的，即编译器不违反任何语言规范。编译器根据语言规范进行优化，如果barrier_data()缺失，编译器有权优化掉看似无用的存储操作，所以优化是正确的。
+
+所以，四个条件似乎都满足：原始代码意图安全，但依赖barrier_data()；编译器引入漏洞；代码合规；编译器正确。
+
+步骤五：分类与漏洞模式匹配。
+
+- 如果满足四个条件，则判断属于哪一类CISB。
+
+- A. 隐式规范类（ISpec）或 B. 正交规范类（OSpec）。
+
+- 模式：这里，安全操作（清零敏感数据）被优化删除。这匹配OSpec1：敏感数据清零操作被删除（如 memset、memzero_explicit）。
+
+- 是的，memzero_explicit()用于清零敏感数据，被优化掉，直接对应OSpec1。
+
+- 所以，属于OSpec类，具体是OSpec1。
+
+输出判断结果。
+
+最后，输出格式：直接输出判断结果，不要输出步骤。
+
+所以，我应该输出：【是CISB - OSpec类】 + 简要说明。
+
+简要说明：由于barrier_data()在clang上缺失，导致编译器优化消除了memzero_explicit()调用，敏感数据未被清零。
+
+确认补丁内容：补丁将barrier_data()和barrier()的定义移动到compiler.h中，以确保在clang上也有定义。原始问题是在clang上barrier_data()缺失，导致优化漏洞。
+
+因此，原始代码（在修复前）存在CISB。
+
+【最终结果】
+【是CISB - OSpec类】由于barrier_data()在clang上缺失，编译器优化消除了memzero_explicit()调用，导致敏感数据清零操作被删除。

@@ -1,0 +1,89 @@
+【Commit 原始内容】
+{
+  "id": "778aaefb8e864fc61f850539ea479554dd4caea1",
+  "year": "2021",
+  "message": "asm-generic: unaligned always use struct helpers\n\nAs found by Vineet Gupta and Linus Torvalds, gcc has somewhat unexpected\nbehavior when faced with overlapping unaligned pointers. The kernel's\nunaligned/access-ok.h header technically invokes undefined behavior\nthat happens to usually work on the architectures using it, but if the\ncompiler optimizes code based on the assumption that undefined behavior\ndoesn't happen, it can create output that actually causes data corruption.\n\nA related problem was previously found on 32-bit ARMv7, where most\ninstructions can be used on unaligned data, but 64-bit ldrd/strd causes\nan exception. The workaround was to always use the unaligned/le_struct.h\nhelper instead of unaligned/access-ok.h, in commit 1cce91dfc8f7 (\"ARM:\n8715/1: add a private asm/unaligned.h\").\n\nThe same solution should work on all other architectures as well, so\nremove the access-ok.h variant and use the other one unconditionally on\nall architectures, picking either the big-endian or little-endian version.\n\nWith this, the arm specific header can be removed as well, and the\nonly file including linux/unaligned/access_ok.h gets moved to including\nthe normal file.\n\nFortunately, this made almost no difference to the object code produced\nby gcc-11. On x86, s390, powerpc, and arc, the resulting binary appears\nto be identical to the previous version, while on arm64 and m68k there\nare minimal differences that looks like an optimization pass went into\na different direction, usually using fewer stack spills on the new\nversion.\n\nLink: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100363",
+  "patches": {
+    "arch/arm/include/asm/unaligned.h": "@@ -1,25 +0,0 @@\n-#ifndef __ASM_ARM_UNALIGNED_H\n-#define __ASM_ARM_UNALIGNED_H\n-\n-/*\n- * We generally want to set CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS on ARMv6+,\n- * but we don't want to use linux/unaligned/access_ok.h since that can lead\n- * to traps on unaligned stm/ldm or strd/ldrd.\n- */\n-#include <asm/byteorder.h>\n-\n-#if defined(__LITTLE_ENDIAN)\n-# include <linux/unaligned/le_struct.h>\n-# include <linux/unaligned/generic.h>\n-# define get_unaligned\t__get_unaligned_le\n-# define put_unaligned\t__put_unaligned_le\n-#elif defined(__BIG_ENDIAN)\n-# include <linux/unaligned/be_struct.h>\n-# include <linux/unaligned/generic.h>\n-# define get_unaligned\t__get_unaligned_be\n-# define put_unaligned\t__put_unaligned_be\n-#else\n-# error need to define endianess\n-#endif\n-\n-#endif /* __ASM_ARM_UNALIGNED_H */",
+    "arch/mips/crypto/crc32-mips.c": "@@ -8,13 +8,13 @@\n  * Copyright (C) 2018 MIPS Tech, LLC\n  */\n \n-#include <linux/unaligned/access_ok.h>\n #include <linux/cpufeature.h>\n #include <linux/init.h>\n #include <linux/kernel.h>\n #include <linux/module.h>\n #include <linux/string.h>\n #include <asm/mipsregs.h>\n+#include <asm/unaligned.h>\n \n #include <crypto/internal/hash.h>\n ",
+    "include/asm-generic/unaligned.h": "@@ -8,22 +8,13 @@\n  */\n #include <asm/byteorder.h>\n \n-/* Set by the arch if it can handle unaligned accesses in hardware. */\n-#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS\n-# include <linux/unaligned/access_ok.h>\n-#endif\n-\n #if defined(__LITTLE_ENDIAN)\n-# ifndef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS\n-#  include <linux/unaligned/le_struct.h>\n-# endif\n+# include <linux/unaligned/le_struct.h>\n # include <linux/unaligned/generic.h>\n # define get_unaligned\t__get_unaligned_le\n # define put_unaligned\t__put_unaligned_le\n #elif defined(__BIG_ENDIAN)\n-# ifndef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS\n-#  include <linux/unaligned/be_struct.h>\n-# endif\n+# include <linux/unaligned/be_struct.h>\n # include <linux/unaligned/generic.h>\n # define get_unaligned\t__get_unaligned_be\n # define put_unaligned\t__put_unaligned_be",
+    "include/linux/unaligned/access_ok.h": "@@ -1,68 +0,0 @@\n-/* SPDX-License-Identifier: GPL-2.0 */\n-#ifndef _LINUX_UNALIGNED_ACCESS_OK_H\n-#define _LINUX_UNALIGNED_ACCESS_OK_H\n-\n-#include <linux/kernel.h>\n-#include <asm/byteorder.h>\n-\n-static __always_inline u16 get_unaligned_le16(const void *p)\n-{\n-\treturn le16_to_cpup((__le16 *)p);\n-}\n-\n-static __always_inline u32 get_unaligned_le32(const void *p)\n-{\n-\treturn le32_to_cpup((__le32 *)p);\n-}\n-\n-static __always_inline u64 get_unaligned_le64(const void *p)\n-{\n-\treturn le64_to_cpup((__le64 *)p);\n-}\n-\n-static __always_inline u16 get_unaligned_be16(const void *p)\n-{\n-\treturn be16_to_cpup((__be16 *)p);\n-}\n-\n-static __always_inline u32 get_unaligned_be32(const void *p)\n-{\n-\treturn be32_to_cpup((__be32 *)p);\n-}\n-\n-static __always_inline u64 get_unaligned_be64(const void *p)\n-{\n-\treturn be64_to_cpup((__be64 *)p);\n-}\n-\n-static __always_inline void put_unaligned_le16(u16 val, void *p)\n-{\n-\t*((__le16 *)p) = cpu_to_le16(val);\n-}\n-\n-static __always_inline void put_unaligned_le32(u32 val, void *p)\n-{\n-\t*((__le32 *)p) = cpu_to_le32(val);\n-}\n-\n-static __always_inline void put_unaligned_le64(u64 val, void *p)\n-{\n-\t*((__le64 *)p) = cpu_to_le64(val);\n-}\n-\n-static __always_inline void put_unaligned_be16(u16 val, void *p)\n-{\n-\t*((__be16 *)p) = cpu_to_be16(val);\n-}\n-\n-static __always_inline void put_unaligned_be32(u32 val, void *p)\n-{\n-\t*((__be32 *)p) = cpu_to_be32(val);\n-}\n-\n-static __always_inline void put_unaligned_be64(u64 val, void *p)\n-{\n-\t*((__be64 *)p) = cpu_to_be64(val);\n-}\n-\n-#endif /* _LINUX_UNALIGNED_ACCESS_OK_H */"
+  }
+}
+
+【思维链】
+首先，任务是分析补丁，判断原始代码是否可能受到编译器引入的安全漏洞（CISB）的影响。补丁是JSON格式，提供了commit信息、修改内容和前后代码片段。我需要按照五个步骤进行推理，但输出时只输出判断结果。
+
+补丁信息：
+- id: '778aaefb8e864fc61f850539ea479554dd4caea1'
+- year: '2021'
+- message: 详细说明了问题：asm-generic: unaligned always use struct helpers。提到gcc有意外行为，当面对重叠的未对齐指针时，内核的unaligned/access-ok.h头文件技术上会引发未定义行为，但通常在工作。如果编译器基于未定义行为不发生进行优化，可能会导致数据损坏。之前有类似问题在ARMv7上，使用unaligned/le_struct.h代替access-ok.h。现在在所有架构上都使用struct helpers。
+- patches: 有四个文件被修改：
+  1. arch/arm/include/asm/unaligned.h: 被删除。
+  2. arch/mips/crypto/crc32-mips.c: 从#include <linux/unaligned/access_ok.h>改为#include <asm/unaligned.h>。
+  3. include/asm-generic/unaligned.h: 修改了条件编译，移除对access_ok.h的依赖，总是使用le_struct.h或be_struct.h。
+  4. include/linux/unaligned/access_ok.h: 被删除。
+
+修改的核心是移除access_ok.h，改用struct helpers（le_struct.h或be_struct.h）。原因是在某些情况下，access_ok.h会引发未定义行为，编译器优化可能破坏代码安全。
+
+现在，按照步骤分析：
+
+**步骤一：理解程序员的原始安全意图。**
+- 原始代码使用access_ok.h来处理未对齐访问。安全意图是安全地读取或写入未对齐的数据，避免在支持未对齐访问的硬件上导致异常或数据损坏。特别是，在ARMv6+上，虽然硬件支持未对齐访问，但某些指令（如stm/ldm或strd/ldrd）可能会导致陷阱。所以，程序员意图是使用一个安全的方法来处理未对齐访问，确保跨架构兼容性和正确性。
+- 从commit message看，原始代码使用access_ok.h，但存在未定义行为，当编译器优化时可能引入数据损坏。所以，安全意图是避免未对齐访问导致的硬件异常或数据损坏，但access_ok.h的实现方式有潜在问题。
+
+**步骤二：识别编译器的假设与优化行为。**
+- 编译器遵循C语言规范。在access_ok.h中，代码使用指针类型转换来访问未对齐的数据，例如`*(__le16 *)p`。如果指针p未对齐，这可能导致未定义行为（根据C标准，访问未对齐指针是未定义行为，但在许多架构上实际工作）。
+- 编译器假设没有未定义行为。因此，当编译器看到这样的代码时，它可能假设指针是对齐的，并基于此进行优化，例如重叠存储或重排指令。
+- 具体优化可能包括：假设指针访问是安全的，消除冗余检查，或进行别名分析导致错误优化。
+
+**步骤三：分析“意图”与“假设”之间的冲突。**
+- 程序员的意图是安全地处理未对齐访问，但使用的方法（直接类型转换）引发了未定义行为。
+- 编译器的假设是未定义行为不发生，因此可能优化掉一些必要的安全措施或导致代码行为改变。
+- 冲突点：程序员依赖未定义行为来工作（因为硬件实际支持），但编译器基于规范假设未定义行为不存在，从而优化出错误的代码。
+
+**步骤四：判断是否满足CISB的四个必要条件。**
+1. **源代码安全**：原始代码在没有编译器优化时，在目标机器上没有安全问题？原始代码使用access_ok.h，在大多数情况下工作，但存在未定义行为。根据定义，如果开发者利用未定义行为来实现特定功能，则视为代码合规（条件3），但这里未定义行为是潜在的，可能导致问题。所以，在没有优化时，代码可能安全（依赖于硬件），但未定义行为本身是风险。条件1说“如果没有经过编译器优化，在目标机器上没有安全问题”。但未定义行为意味着即使没有优化，也可能有问题，但commit message说“通常工作”。所以，可能视为在没有优化时安全。
+
+2. **编译器引入**：编译器优化在编译期间修改代码，创建了漏洞。从message看，当编译器优化基于未定义行为不发生，它可能产生损坏数据的输出。所以，是编译器优化引入了问题。
+
+3. **代码合规**：原始代码不包含任何语言关键字的错误使用。这里使用指针类型转换，但这是合法的C代码，只是可能未对齐访问是未定义行为。根据条件：如果开发者利用了未定义行为来实现特定目的，则视为代码合规。程序员确实利用了未定义行为（未对齐访问）来实现跨平台未对齐访问，所以应视为合规。
+
+4. **编译器正确**：编译器优化是形式正确的，即编译器不违反任何语言规范。编译器基于未定义行为不发生进行优化是允许的，因此优化是符合语言规范的。
+
+所以，四个条件似乎都满足。
+
+**步骤五：分类与漏洞模式匹配。**
+如果满足条件，判断属于哪一类CISB：
+- A. 隐式规范类（ISpec）：
+  - ISpec1：安全检查被移除。这里不是直接的安全检查，而是访问方式导致未定义行为。
+  - ISpec2：顺序敏感的安全操作被重排。可能，但更相关的是未对齐访问的优化。
+  - ISpec3：不安全指令被引入或替换。这里，编译器可能引入不安全的指令或替换访问方式，导致数据损坏。匹配ISpec3：不安全指令被引入或替换，如未对齐访问、类型提升等。具体来说，编译器假设对齐并优化，可能导致未对齐访问被错误处理。
+
+- B. 正交规范类（OSpec）：
+  - OSpec1：敏感数据清零操作被删除。不相关。
+  - OSpec2：执行时间保证被破坏。不直接相关。
+  - OSpec3：引入推测执行侧信道。不直接相关。
+
+更匹配ISpec3，因为涉及未对齐访问的优化。
+
+从commit message看，问题是在重叠指针的情况下，gcc有意外行为，优化导致数据损坏。这类似于编译器基于未定义行为进行优化，改变了代码语义。
+
+输出格式：最后一行输出判断结果。
+
+所以，判断：是CISB，属于ISpec类，具体是ISpec3：不安全指令被引入或替换。
+
+简要说明：原始代码使用未对齐指针类型转换引发未定义行为，编译器假设对齐并优化，可能导致数据损坏。
+
+因此，输出：【是CISB - ISpec类】原始代码中未对齐访问引发未定义行为，编译器优化基于此假设导致数据损坏。
+
+确认是否所有条件满足：
+- 源代码安全：在没有优化时，代码通常在目标机器上工作，但未定义行为存在风险。条件说“如果开发者利用未定义行为来实现某个特定目的或功能，视为该未定义行为并非源代码中的安全问题”。所以，视为安全。
+- 编译器引入：是。
+- 代码合规：是，未定义行为被利用。
+- 编译器正确：是。
+
+所以，是CISB。
+
+【最终结果】
+【是CISB - ISpec类】原始代码利用未对齐指针类型转换实现未对齐访问，该未定义行为通常工作，但编译器优化假设对齐并可能引入不安全指令，导致数据损坏。

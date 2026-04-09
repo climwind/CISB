@@ -1,0 +1,63 @@
+【Commit 原始内容】
+{
+  "id": "067e710b9a982a92cc8294d7fa0f1e924c65bba1",
+  "year": "2013",
+  "message": "ARM: 7801/1: v6: prevent gcc 4.5 from reordering extended CP15 reads above is_smp() test\n\nCommit 621a0147d5c921f4cc33636ccd0602ad5d7cbfbc (\"ARM: 7757/1: mm:\ndon't flush icache in switch_mm with hardware broadcasting\") breaks\nthe boot on OMAP2430SDP with omap2plus_defconfig.  Tracked to an\nundefined instruction abort from the CP15 read in\ncache_ops_need_broadcast().  It turns out that gcc 4.5 reorders the\nextended CP15 read above the is_smp() test.  This breaks ARM1136 r0\ncores, since they don't support several CP15 registers that later ARM\ncores do.  ARM1136JF-S TRM section 3.2.1 \"Register allocation\" has the\ndetails.\n\nSo mark the extended CP15 read as clobbering memory, which prevents\nthe compiler from reordering it before the is_smp() test.  Russell\nstates that the code generated from this approach is preferable to\nmarking the inline asm as volatile.  Remove the existing condition\ncode clobber as it's obsolete, per Nico's post:\n\n    http://www.spinics.net/lists/arm-kernel/msg261208.html\n\nThis patch is a collaboration with Will Deacon and Russell King.\n\nComments from Paul Walmsley:\n\n Russell, if you accept this one, might you also add Will's ack from the lists:\n\nComments from Paul Walmsley:\n\n I'd also be obliged if you could add a Cc: line for Jonathan Austin, since he helped test:",
+  "patches": {
+    "arch/arm/include/asm/cputype.h": "@@ -89,13 +89,18 @@ extern unsigned int processor_id;\n \t\t__val;\t\t\t\t\t\t\t\\\n \t})\n \n+/*\n+ * The memory clobber prevents gcc 4.5 from reordering the mrc before\n+ * any is_smp() tests, which can cause undefined instruction aborts on\n+ * ARM1136 r0 due to the missing extended CP15 registers.\n+ */\n #define read_cpuid_ext(ext_reg)\t\t\t\t\t\t\\\n \t({\t\t\t\t\t\t\t\t\\\n \t\tunsigned int __val;\t\t\t\t\t\\\n \t\tasm(\"mrc\tp15, 0, %0, c0, \" ext_reg\t\t\\\n \t\t    : \"=r\" (__val)\t\t\t\t\t\\\n \t\t    :\t\t\t\t\t\t\t\\\n-\t\t    : \"cc\");\t\t\t\t\t\t\\\n+\t\t    : \"memory\");\t\t\t\t\t\\\n \t\t__val;\t\t\t\t\t\t\t\\\n \t})\n "
+  }
+}
+
+【思维链】
+我们被提供了一个补丁，其commit信息表明：在ARM架构中，gcc 4.5可能会将扩展CP15读取（read_cpuid_ext）重新排序到is_smp()测试之前，这会导致在ARM1136 r0内核上出现未定义指令异常，因为这些内核不支持后来ARM内核支持的一些CP15寄存器。补丁将内联汇编中的clobber从"cc"改为"memory"，以防止这种重排序。
+
+我们需要分析原始代码是否可能受到“编译器引入的安全漏洞（CISB）”的影响。注意，这里的安全问题是指可能导致未定义指令异常，从而可能造成系统崩溃或不可预期行为，但这不是传统意义上的安全漏洞（如内存泄露、代码执行等），而是稳定性或正确性问题。然而，CISB定义中，“安全”可能更广泛地包括任何由编译器优化引入的、导致程序行为偏离程序员意图的问题，特别是当这种偏离可能导致漏洞时。根据描述，这里的问题确实是由编译器优化（重排序）引入的，并且可能导致系统无法启动或崩溃。
+
+现在按照步骤分析：
+
+步骤一：理解程序员的原始安全意图。
+原始代码中，read_cpuid_ext是一个宏，用于读取扩展的CP15寄存器。在ARM1136 r0内核上，某些扩展CP15寄存器不存在，访问它们会导致未定义指令异常。程序员在使用read_cpuid_ext之前，可能会先通过is_smp()测试来判断是否是多核系统，从而决定是否读取这些寄存器。其安全意图是：仅在多核系统（SMP）中才需要读取这些扩展寄存器，因为单核系统可能不支持这些寄存器（特别是ARM1136 r0）。因此，程序员期望代码执行顺序是：先进行is_smp()测试，如果为真，再读取扩展CP15寄存器；如果为假（单核），则跳过读取。这样可以避免在单核ARM1136 r0上触发未定义指令异常。
+
+步骤二：识别编译器的假设与优化行为。
+编译器（gcc 4.5）可能假设内联汇编中没有内存依赖，因此可以为了优化而重新排序指令。具体来说，编译器可能认为read_cpuid_ext（内联汇编）没有副作用（除了输出寄存器），并且不访问内存，因此可以将其移到条件测试之前执行，以利用指令级并行或减少延迟。这种优化是常见的，因为编译器认为这样的重排序不会改变程序的可观察行为。
+
+步骤三：分析“意图”与“假设”之间的冲突。
+程序员的意图是：read_cpuid_ext应该在is_smp()为真时才执行，以避免在不支持该指令的CPU上引发异常。编译器的假设是：read_cpuid_ext不依赖于内存，并且没有副作用，因此可以重排序到is_smp()测试之前。冲突在于：编译器将read_cpuid_ext重排序到了is_smp()之前，导致即使在单核ARM1136 r0上也会执行该指令，从而触发未定义指令异常，而程序员的意图是避免这种情况。
+
+步骤四：判断是否满足CISB的四个必要条件。
+1、源代码安全：原始代码在没有编译器优化时，在目标机器上没有安全问题。这里假设编译器不进行重排序，那么代码会按照程序员编写的顺序执行：先检查is_smp()，如果为真才执行read_cpuid_ext。因此，在单核ARM1136 r0上，不会执行该指令，不会触发异常。所以原始代码在没有优化时是安全的。
+2、编译器引入：编译器优化（重排序）在编译期间修改了代码，创建了漏洞（即在不该执行的时候执行了指令，导致异常）。符合。
+3、代码合规：原始代码不包含任何语言关键字的错误使用。内联汇编语法正确，clobber使用了"cc"，这是合理的，表示条件码寄存器被修改。但注意：程序员可能没有充分告知编译器该内联汇编的副作用。不过，从语言规范角度看，原始代码是合规的。但是否利用了未定义行为？这里，程序员的意图依赖于执行顺序，但C语言中，内联汇编的顺序相对于周围代码没有明确的排序保证，除非使用volatile或内存clobber等。因此，程序员可能错误地假设了顺序，但这不是语言关键字的错误使用，而是对编译器行为的不正确假设。然而，条件中说明：“如果开发者利用了未定义行为来实现某个特定目的或功能，则该未定义行为视为代码合规”。这里，程序员可能没有意识到顺序是不保证的，但原始代码中并没有显式利用未定义行为。实际上，内联汇编没有使用volatile，也没有内存clobber，编译器可以重排序。但这是否算作利用了未定义行为？严格来说，内联汇编的顺序是编译器定义的，但通常程序员期望顺序执行。然而，gcc文档指出，不带volatile的内联汇编可能会被移动。所以，原始代码可能没有正确约束编译器，但这不是未定义行为，而是编译器的优化自由度。我们或许可以认为代码合规，因为它符合语法规范。
+4、编译器正确：编译器优化是形式正确的，即编译器不违反任何语言规范。编译器根据其对内联汇编的理解进行重排序，由于原始内联汇编没有指定内存clobber或volatile，编译器认为它没有内存副作用，因此可以重排序。这符合语言规范（gcc的规范）。所以编译器是正确的。
+
+步骤五：分类与漏洞模式匹配。
+如果以上四个条件均满足，则进一步判断属于哪一类CISB。这里，问题在于安全检查（is_smp()测试）被绕过，因为read_cpuid_ext被重排序到了检查之前。这类似于“安全检查被移除”的模式，但这里不是完全移除，而是重排序导致检查失效。具体来说，模式ISpec2：顺序敏感的安全操作被重排（如检查后使用、内存操作顺序）。这里，安全操作是is_smp()检查，使用是read_cpuid_ext，编译器重排了顺序，导致检查前就执行了可能不安全的操作。因此，属于ISpec2。
+
+注意：原始代码中，read_cpuid_ext可能被用在条件分支中，但commit信息提到“reordering the extended CP15 reads above is_smp() test”，所以实际代码可能是类似：
+if (is_smp()) {
+    val = read_cpuid_ext(...);
+}
+编译器将read_cpuid_ext提升到了if条件之前。这属于典型的重排序导致检查失效。
+
+因此，判断结果为CISB，类别为ISpec。
+
+最终输出格式：在最后一行输出判断结果。
+
+注意：题目要求不要输出步骤，直接在最后一行输出判断结果。所以我们只需要输出最后一行。
+
+但是，我们需要确认是否所有条件都满足。特别是条件3：代码合规。原始代码中，内联汇编的clobber是"cc"，这表示只告诉编译器条件码寄存器被修改，但没有告诉编译器内存被访问或可能有其他副作用。然而，读取CP15寄存器实际上是一种系统寄存器读取，它可能影响系统状态吗？通常，读取CP15寄存器不应该有副作用，但在不支持该寄存器的CPU上，它会触发异常。从编译器角度看，它只是一个从特定寄存器读取值的操作，没有内存访问。因此，编译器认为它可以重排序是合理的。程序员没有使用volatile或内存clobber来防止重排序，这可能是疏忽。但代码本身没有语法错误，因此是合规的。
+
+条件1：源代码安全。如果编译器不优化，顺序执行，那么安全。注意：目标机器是ARM1136 r0，如果is_smp()返回false，则不会执行read_cpuid_ext，因此安全。如果is_smp()返回true，那么实际上该CPU是多核吗？ARM1136 r0是单核，所以is_smp()应该返回false，因此安全。但如果is_smp()错误地返回true呢？那是另一回事。我们假设is_smp()正确。
+
+因此，四个条件都满足。
+
+输出：【是CISB - ISpec类】编译器重排序导致安全检查失效。
+
+注意：简要说明需要简洁。
+
+综合以上，最终输出为：
+
+【是CISB - ISpec类】编译器将扩展CP15读取重排序到is_smp()测试之前，导致在单核ARM1136 r0上触发未定义指令异常。
+
+【最终结果】
+【是CISB - ISpec类】编译器将扩展CP15读取重排序到is_smp()测试之前，导致在单核ARM1136 r0上触发未定义指令异常。
