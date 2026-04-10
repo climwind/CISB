@@ -1,1 +1,0 @@
-{"timestamp":"2026-04-07T19:53:41.6448822+08:00","source":{"id":"cli/database/create","name":"CodeQL CLI: database create"},"plaintextMessage":"A fatal error occurred: Exit status 1 from command: [C:\\Tools\\codeql\\tools\\win64\\runner.exe, cmd.exe, /C, type, NUL, &&, gcc, test1.c, -o, test1]","severity":"error","visibility":{"telemetry":false},"attributes":{"exitCode":2}}

@@ -1,4 +1,4 @@
-size_of_ptr.o: test1.c
-clang -c -o test1.o test1.c
+test1.o: test1.c
+	gcc -c -o test1.o test1.c
 clean:
--rm *.o
+	-rm *.o
