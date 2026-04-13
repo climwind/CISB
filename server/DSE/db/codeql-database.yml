@@ -1,0 +1,12 @@
+---
+sourceLocationPrefix: /home/test/my-awesome-project/CISB/server
+baselineLinesOfCode: 21
+unicodeNewlines: false
+columnKind: utf8
+primaryLanguage: cpp
+creationMetadata:
+  cliVersion: 2.25.1
+  creationTime: 2026-04-12T09:20:46.706529538Z
+overlayBaseDatabase: false
+overlayDatabase: false
+finalised: true

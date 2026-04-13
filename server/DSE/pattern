@@ -1,0 +1,5 @@
+{
+    "triggers": ["Compiler optimization (e.g., dead store elimination)", "memset on local array/variable before scope exit with no subsequent reads", "Compiler assumes memset side effect is unnecessary for program observable behavior"],
+    "vulnerable_pattern": "u8 tmp[SIZE]; // ... crypto operations ... memset(tmp, 0, SIZE);",
+    "ql_constraints": "exists(FunctionCall fc | fc.getTarget().hasName(\"memset\") and fc.getArgument(1).getValue().toInt() = 0 and not exists(DataFlow::Node use | DataFlow::localFlow(fc, use) and use.asExpr() != fc))"
+}

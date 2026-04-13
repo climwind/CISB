@@ -1,12 +1,54 @@
 ```json
-{
-  "triggers": [
-    "编译器执行死代码消除（Dead Code Elimination）或死存储消除（Dead Store Elimination）优化",
-    "被优化的代码（变量、函数调用、内存操作）在编译单元内没有显式的后续数据流依赖",
-    "程序员的意图依赖于该代码的副作用（如保留数据、执行操作、清理内存），但这些副作用对编译器的可观察行为分析而言是隐式的或非必要的",
-    "代码中未使用编译器屏障（如 volatile、内存屏障、特定属性）来强制保留这些操作"
-  ],
-  "vulnerable_pattern": "static __TYPE__ __VAR__ __ATTRIBUTES__;\n__FUNC__(__VAR__, __SIZE__);\n// 或者\n__FUNC__(__PTR__, __VAL__, __SIZE__);\n// 或者\n__VAR__ = __VAL__;\n// 关键：上述操作后，__VAR__ 或 __PTR__ 指向的数据在源代码层面没有后续的读取或显式使用",
-  "ql_constraints": "// 核心：检测可能被死代码消除优化的操作，且该操作具有安全意图\nfrom FunctionCall fc, Expr arg\nwhere\n  // 匹配易被优化的函数调用模式，如 memset、初始化函数、或特定工具函数\n  (fc.getTarget().getName() = \"memset\" or fc.getTarget().hasQualifiedName(\"__builtin_memset\"))\n  or\n  // 匹配对静态/局部变量的赋值或初始化，且后续无读取\n  exists(LocalVariableDecl lvd | lvd.getAnAssignment() = fc.getEnclosingStmt())\n  or\n  exists(StaticVariable sv | sv.getAnAssignment() = fc.getEnclosingStmt())\n  // 确保该操作是“最后”的写入，且变量/内存位置之后在编译单元内没有数据流依赖\n  and not exists(DataFlow::Node source, DataFlow::Node sink |\n    DataFlow::localFlow(source, sink) and\n    source.asExpr() = arg and\n    sink.asExpr() instanceof ReadExpr\n  )\n  // 可选：检查是否缺少阻止优化的属性或屏障（如 __attribute__((used)), volatile, barrier_data）\n  and not fc.getEnclosingFunction().hasAttribute(\"used\")\n  and not arg.getType().hasQualifiedName(\"volatile\")\nselect fc, \"Potential CISB: Security-critical operation may be optimized away.\""
-}
+[
+  {
+    "triggers": ["Compiler optimization (e.g., dead code elimination)", "Static variable with no explicit references in compilation unit", "Compiler unaware of implicit uses (e.g., via linker sections or runtime introspection)"],
+    "vulnerable_pattern": "static const struct_type var __attribute__((section(\".custom.section\")));",
+    "ql_constraints": "DataFlow::Node n, DataFlow::Node use; exists(StaticVariable v | n.asExpr() = v.getAnAccess() and not exists(DataFlow::Node explicitUse | DataFlow::localFlow(n, explicitUse)) and v.hasAttribute(\"section\"))"
+  },
+  {
+    "triggers": ["Compiler optimization (e.g., dead code elimination, constant propagation)", "Symbol address stored in custom section but not explicitly referenced", "Compiler unaware of implicit uses via section iteration (e.g., sysfs)"],
+    "vulnerable_pattern": "static const char *str __attribute__((section(\"__tracepoint_str\"))) = \"string\";",
+    "ql_constraints": "DataFlow::Node n; exists(StaticVariable v | n.asExpr() = v.getAnAccess() and v.hasAttribute(\"section\") and not exists(DataFlow::Node use | DataFlow::localFlow(n, use)))"
+  },
+  {
+    "triggers": ["Compiler optimization (e.g., dead code elimination based on undefined behavior)", "Buffer overflow operation with no observable side effects", "Compiler assumes program does not invoke undefined behavior"],
+    "vulnerable_pattern": "char buf[SIZE]; memset((void *)buf, value, LARGER_SIZE); // No subsequent use of buf",
+    "ql_constraints": "exists(FunctionCall fc | fc.getTarget().hasName(\"memset\") and fc.getArgument(2).getValue().toInt() > fc.getArgument(0).getType().getSize() and not exists(DataFlow::Node use | DataFlow::localFlow(fc, use)))"
+  },
+  {
+    "triggers": ["Compiler optimization (e.g., dead store elimination)", "memset on local variable before scope exit with no subsequent reads", "Compiler assumes memset side effect is unnecessary for program observable behavior"],
+    "vulnerable_pattern": "char sensitive_data[SIZE]; // ... use ... memset(sensitive_data, 0, SIZE);",
+    "ql_constraints": "exists(FunctionCall fc | fc.getTarget().hasName(\"memset\") and fc.getArgument(1).getValue().toInt() = 0 and not exists(DataFlow::Node use | DataFlow::localFlow(fc, use) and use.asExpr() != fc))"
+  },
+  {
+    "triggers": ["Compiler optimization (e.g., dead store elimination)", "memset on local array/variable before scope exit with no subsequent reads", "Compiler assumes memset side effect is unnecessary for program observable behavior"],
+    "vulnerable_pattern": "u8 tmp[SIZE]; // ... crypto operations ... memset(tmp, 0, SIZE);",
+    "ql_constraints": "exists(FunctionCall fc | fc.getTarget().hasName(\"memset\") and fc.getArgument(1).getValue().toInt() = 0 and not exists(DataFlow::Node use | DataFlow::localFlow(fc, use) and use.asExpr() != fc))"
+  },
+  {
+    "triggers": ["Compiler optimization (e.g., dead code elimination, function inlining)", "Function call with no side effects and unused return value", "Compiler unaware of implicit side effects (e.g., kprobe triggering)"],
+    "vulnerable_pattern": "int target(...) { return ...; } int ret = target(...); // ret not used",
+    "ql_constraints": "exists(FunctionCall fc | not exists(DataFlow::Node use | DataFlow::localFlow(fc, use)) and not fc.getTarget().isSideEffectFree())"
+  },
+  {
+    "triggers": ["Compiler optimization (e.g., dead store elimination)", "memset on local buffer before function return with no subsequent reads", "Compiler assumes memset side effect is unnecessary for program observable behavior"],
+    "vulnerable_pattern": "u8 iv[BLOCKLEN]; // ... use ... memset(iv, 0, BLOCKLEN); return;",
+    "ql_constraints": "exists(FunctionCall fc | fc.getTarget().hasName(\"memset\") and fc.getArgument(1).getValue().toInt() = 0 and not exists(DataFlow::Node use | DataFlow::localFlow(fc, use) and use.asExpr() != fc))"
+  },
+  {
+    "triggers": ["Compiler optimization (e.g., dead store elimination, LTO)", "memset followed by insufficient optimization barrier (e.g., OPTIMIZER_HIDE_VAR)", "Compiler may still eliminate memset as dead store"],
+    "vulnerable_pattern": "void memzero_explicit(void *s, size_t count) { memset(s, 0, count); OPTIMIZER_HIDE_VAR(s); }",
+    "ql_constraints": "exists(FunctionCall fc | fc.getTarget().hasName(\"memset\") and fc.getArgument(1).getValue().toInt() = 0 and parent*(fc).(Function).getName() = \"memzero_explicit\" and not exists(BarrierGuard bg | bg.protects(fc)))"
+  },
+  {
+    "triggers": ["Compiler optimization (e.g., dead store elimination across compilers)", "memset followed by generic barrier() which may be insufficient", "Compiler may still eliminate memset as dead store (especially with LTO)"],
+    "vulnerable_pattern": "void memzero_explicit(void *s, size_t count) { memset(s, 0, count); barrier(); }",
+    "ql_constraints": "exists(FunctionCall fc | fc.getTarget().hasName(\"memset\") and fc.getArgument(1).getValue().toInt() = 0 and parent*(fc).(Function).getName() = \"memzero_explicit\" and not exists(BarrierDataGuard bdg | bdg.protects(fc)))"
+  },
+  {
+    "triggers": ["Compiler optimization (e.g., dead store elimination)", "Assignment to local variables before function return with no subsequent reads", "Compiler assumes assignments are dead stores"],
+    "vulnerable_pattern": "u64 a, b, c, ...; // ... computations ... a = b = c = ... = 0;",
+    "ql_constraints": "exists(AssignStmt as | as.getRHS().getValue().toInt() = 0 and not exists(DataFlow::Node use | DataFlow::localFlow(as, use)) and as.getLHS().getType().isScalarType())"
+  }
+]
 ```

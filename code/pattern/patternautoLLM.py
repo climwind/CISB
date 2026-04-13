@@ -17,25 +17,32 @@ def write_output_file(filename, content):
     with open(filename, 'w', encoding='utf-8') as f:
         f.write(content)
 
-prompt = """你是一名代码安全分析专家，专注于“编译器引入的安全漏洞”（CISB）模式提取。  
-请根据我提供的多个 CISB 案例（每个案例包含原始代码、补丁、安全意图分析），完成以下任务：
+prompt = """你是一个软件安全专家，精通静态分析相关的技术。现在请你根据我筛选出的漏洞代码提取总结出漏洞模式。要求既包含漏洞的完整语义和触发条件，同时便于后续的 QL 模板代码生成参考。
+请从下面的 C 语言漏洞复现代码中提取编译器引入型漏洞模式，并以JSON格式输出结果。输出应包括以下字段：
 
-1. **提取一个高度抽象的 CISB 模式**，该模式应能覆盖所有案例中出现的共性特征。  
-2. 以 **JSON 格式** 输出结果，确保结构清晰、字段完整，便于后续自动化检测工具（如 CodeQL）集成。  
-3. JSON 应包含以下三个字段：  
-   - `triggers`：数组类型，列出触发该模式的最关键必要条件（环境、程序上下文、编译器行为等），要求高度概括且简洁且用中文表示。  
-   - `vulnerable_pattern`：字符串类型，**漏洞代码片段的高度抽象表示**，要求使用代码形式（伪代码或带占位符的真实代码片段），将具体变量名、函数名、常量等泛化为占位符（例如 `__FUNC__`、`__VAR__`、`__SIZE__`），突出易被优化的关键操作。  
-   - `ql_constraints`：字符串类型，用 CodeQL 查询语言（QL）语法表达该模式检测中最应关注的约束条件，聚焦于数据流、控制流、编译器行为等。
-
-**要求**：  
-- 不要进行“具体情况具体分析”，而是给出一个适用于所有案例的统一抽象模式。  
-- `vulnerable_pattern` 必须表现为代码块形式，而非文字描述。  
-- 输出仅包含 JSON 内容，不要添加额外解释。"""
+- triggers: 包含最关键必要的触发条件的数组，例如环境信息，程序上下文，编译优化选项等。需要高度概括且简洁。
+- vulnerable\_pattern: 漏洞代码片段的高度抽象表示。
+- ql\_constraints: 作为CodeQL检测的模板中最应关注的约束条件，用 QL 语法表示。
+  代码示例：
+  c
+  int main(int argc, char\* argv\[]) {
+  //  ./a.out 30 Getit,pleasedonottellanyoneelse
+  int n;
+  char \*password;
+- n = atoi(argv\[1]);
+  password = malloc(n);
+  for(int i = 0; i < 30; i++){
+  password\[i] = argv\[2]\[i];
+  }
+  memset(password, '\x00', n); // memset will be eliminated with option -O1/O2/O3
+  return 0;
+  }
+  请确保输出仅为JSON格式，且每一字段的信息要尽可能精简但完整。"""
 
 # 主程序
 def main():
-    input_filename = "patternInput.txt"
-    output_filename = "patternOutput.txt"
+    input_filename = "/home/test/my-awesome-project/CISB/code/pattern/patternInput.txt"
+    output_filename = "/home/test/my-awesome-project/CISB/code/pattern/patternOutput.txt"
     
     # 读取输入文件
     print(f"正在读取输入文件: {input_filename}")
