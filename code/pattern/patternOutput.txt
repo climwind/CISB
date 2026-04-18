@@ -1,54 +1,17 @@
 ```json
-[
-  {
-    "triggers": ["Compiler optimization (e.g., dead code elimination)", "Static variable with no explicit references in compilation unit", "Compiler unaware of implicit uses (e.g., via linker sections or runtime introspection)"],
-    "vulnerable_pattern": "static const struct_type var __attribute__((section(\".custom.section\")));",
-    "ql_constraints": "DataFlow::Node n, DataFlow::Node use; exists(StaticVariable v | n.asExpr() = v.getAnAccess() and not exists(DataFlow::Node explicitUse | DataFlow::localFlow(n, explicitUse)) and v.hasAttribute(\"section\"))"
-  },
-  {
-    "triggers": ["Compiler optimization (e.g., dead code elimination, constant propagation)", "Symbol address stored in custom section but not explicitly referenced", "Compiler unaware of implicit uses via section iteration (e.g., sysfs)"],
-    "vulnerable_pattern": "static const char *str __attribute__((section(\"__tracepoint_str\"))) = \"string\";",
-    "ql_constraints": "DataFlow::Node n; exists(StaticVariable v | n.asExpr() = v.getAnAccess() and v.hasAttribute(\"section\") and not exists(DataFlow::Node use | DataFlow::localFlow(n, use)))"
-  },
-  {
-    "triggers": ["Compiler optimization (e.g., dead code elimination based on undefined behavior)", "Buffer overflow operation with no observable side effects", "Compiler assumes program does not invoke undefined behavior"],
-    "vulnerable_pattern": "char buf[SIZE]; memset((void *)buf, value, LARGER_SIZE); // No subsequent use of buf",
-    "ql_constraints": "exists(FunctionCall fc | fc.getTarget().hasName(\"memset\") and fc.getArgument(2).getValue().toInt() > fc.getArgument(0).getType().getSize() and not exists(DataFlow::Node use | DataFlow::localFlow(fc, use)))"
-  },
-  {
-    "triggers": ["Compiler optimization (e.g., dead store elimination)", "memset on local variable before scope exit with no subsequent reads", "Compiler assumes memset side effect is unnecessary for program observable behavior"],
-    "vulnerable_pattern": "char sensitive_data[SIZE]; // ... use ... memset(sensitive_data, 0, SIZE);",
-    "ql_constraints": "exists(FunctionCall fc | fc.getTarget().hasName(\"memset\") and fc.getArgument(1).getValue().toInt() = 0 and not exists(DataFlow::Node use | DataFlow::localFlow(fc, use) and use.asExpr() != fc))"
-  },
-  {
-    "triggers": ["Compiler optimization (e.g., dead store elimination)", "memset on local array/variable before scope exit with no subsequent reads", "Compiler assumes memset side effect is unnecessary for program observable behavior"],
-    "vulnerable_pattern": "u8 tmp[SIZE]; // ... crypto operations ... memset(tmp, 0, SIZE);",
-    "ql_constraints": "exists(FunctionCall fc | fc.getTarget().hasName(\"memset\") and fc.getArgument(1).getValue().toInt() = 0 and not exists(DataFlow::Node use | DataFlow::localFlow(fc, use) and use.asExpr() != fc))"
-  },
-  {
-    "triggers": ["Compiler optimization (e.g., dead code elimination, function inlining)", "Function call with no side effects and unused return value", "Compiler unaware of implicit side effects (e.g., kprobe triggering)"],
-    "vulnerable_pattern": "int target(...) { return ...; } int ret = target(...); // ret not used",
-    "ql_constraints": "exists(FunctionCall fc | not exists(DataFlow::Node use | DataFlow::localFlow(fc, use)) and not fc.getTarget().isSideEffectFree())"
-  },
-  {
-    "triggers": ["Compiler optimization (e.g., dead store elimination)", "memset on local buffer before function return with no subsequent reads", "Compiler assumes memset side effect is unnecessary for program observable behavior"],
-    "vulnerable_pattern": "u8 iv[BLOCKLEN]; // ... use ... memset(iv, 0, BLOCKLEN); return;",
-    "ql_constraints": "exists(FunctionCall fc | fc.getTarget().hasName(\"memset\") and fc.getArgument(1).getValue().toInt() = 0 and not exists(DataFlow::Node use | DataFlow::localFlow(fc, use) and use.asExpr() != fc))"
-  },
-  {
-    "triggers": ["Compiler optimization (e.g., dead store elimination, LTO)", "memset followed by insufficient optimization barrier (e.g., OPTIMIZER_HIDE_VAR)", "Compiler may still eliminate memset as dead store"],
-    "vulnerable_pattern": "void memzero_explicit(void *s, size_t count) { memset(s, 0, count); OPTIMIZER_HIDE_VAR(s); }",
-    "ql_constraints": "exists(FunctionCall fc | fc.getTarget().hasName(\"memset\") and fc.getArgument(1).getValue().toInt() = 0 and parent*(fc).(Function).getName() = \"memzero_explicit\" and not exists(BarrierGuard bg | bg.protects(fc)))"
-  },
-  {
-    "triggers": ["Compiler optimization (e.g., dead store elimination across compilers)", "memset followed by generic barrier() which may be insufficient", "Compiler may still eliminate memset as dead store (especially with LTO)"],
-    "vulnerable_pattern": "void memzero_explicit(void *s, size_t count) { memset(s, 0, count); barrier(); }",
-    "ql_constraints": "exists(FunctionCall fc | fc.getTarget().hasName(\"memset\") and fc.getArgument(1).getValue().toInt() = 0 and parent*(fc).(Function).getName() = \"memzero_explicit\" and not exists(BarrierDataGuard bdg | bdg.protects(fc)))"
-  },
-  {
-    "triggers": ["Compiler optimization (e.g., dead store elimination)", "Assignment to local variables before function return with no subsequent reads", "Compiler assumes assignments are dead stores"],
-    "vulnerable_pattern": "u64 a, b, c, ...; // ... computations ... a = b = c = ... = 0;",
-    "ql_constraints": "exists(AssignStmt as | as.getRHS().getValue().toInt() = 0 and not exists(DataFlow::Node use | DataFlow::localFlow(as, use)) and as.getLHS().getType().isScalarType())"
-  }
-]
+{
+    "triggers": [
+        "Clang 编译器",
+        "优化级别 -O1/-O2/-O3",
+        "结构体成员偏移量大于 0",
+        "循环条件为 &ptr->member != NULL"
+    ],
+    "vulnerable_pattern": "for (pos = container_of(node, type, member); &pos->member != NULL; pos = container_of(pos->member.next, type, member))",
+    "ql_constraints": [
+        "exists(ForStmt fs | fs.getCondition().getAChild*() instanceof AddressOfExpr)",
+        "exists(AddressOfExpr addrOf | addrOf.getOperand().(FieldAccess).getQualifier() = fs.getCondition().getAChild*())",
+        "fs.getCondition().toString() = \"&... != NULL\"",
+        "fs.getCondition().getAChild*() instanceof BinaryOperation and (asBinaryOperation).getOperator() = \"!=\""
+    ]
+}
 ```
