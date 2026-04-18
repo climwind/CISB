@@ -68,7 +68,7 @@ def main():
     print("正在调用 API 进行分析...")
     try:
         response = client.chat.completions.create(
-            model="deepseek-chat",
+            model="deepseek-reasoner",
             messages=[
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": input_content},

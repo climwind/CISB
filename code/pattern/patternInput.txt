@@ -1,28 +1,55 @@
-"beaec533fc2701a28a4d667f67c9f59c6e4e0d13": {
-        "id": "beaec533fc2701a28a4d667f67c9f59c6e4e0d13",
-        "year": "2017",
-        "message": "llist: clang: introduce member_address_is_nonnull()\n\nCurrently llist_for_each_entry() and llist_for_each_entry_safe() iterate\nuntil &pos->member != NULL.  But when building the kernel with Clang,\nthe compiler assumes &pos->member cannot be NULL if the member's offset\nis greater than 0 (which would be equivalent to the object being\nnon-contiguous in memory).  Therefore the loop condition is always true,\nand the loops become infinite.\n\nTo work around this, introduce the member_address_is_nonnull() macro,\nwhich casts object pointer to uintptr_t, thus letting the member pointer\nto be NULL.",
+"d50f2ab6f050311dbf7b8f5501b25f0bf64a439b": {
+        "id": "d50f2ab6f050311dbf7b8f5501b25f0bf64a439b",
+        "year": "2012",
+        "message": "ext4: fix undefined behavior in ext4_fill_flex_info()\n\nCommit 503358ae01b70ce6909d19dd01287093f6b6271c (\"ext4: avoid divide by\nzero when trying to mount a corrupted file system\") fixes CVE-2009-4307\nby performing a sanity check on s_log_groups_per_flex, since it can be\nset to a bogus value by an attacker.\n\n\tsbi->s_log_groups_per_flex = sbi->s_es->s_log_groups_per_flex;\n\tgroups_per_flex = 1 << sbi->s_log_groups_per_flex;\n\n\tif (groups_per_flex < 2) { ... }\n\nThis patch fixes two potential issues in the previous commit.\n\n1) The sanity check might only work on architectures like PowerPC.\nOn x86, 5 bits are used for the shifting amount.  That means, given a\nlarge s_log_groups_per_flex value like 36, groups_per_flex = 1 << 36\nis essentially 1 << 4 = 16, rather than 0.  This will bypass the check,\nleaving s_log_groups_per_flex and groups_per_flex inconsistent.\n\n2) The sanity check relies on undefined behavior, i.e., oversized shift.\nA standard-confirming C compiler could rewrite the check in unexpected\nways.  Consider the following equivalent form, assuming groups_per_flex\nis unsigned for simplicity.\n\n\tgroups_per_flex = 1 << sbi->s_log_groups_per_flex;\n\tif (groups_per_flex == 0 || groups_per_flex == 1) {\n\nWe compile the code snippet using Clang 3.0 and GCC 4.6.  Clang will\ncompletely optimize away the check groups_per_flex == 0, leaving the\npatched code as vulnerable as the original.  GCC keeps the check, but\nthere is no guarantee that future versions will do the same.",
         "patches": {
-            "include/linux/llist.h": "@@ -92,6 +92,23 @@ static inline void init_llist_head(struct llist_head *list)\n #define llist_entry(ptr, type, member)\t\t\\\n \tcontainer_of(ptr, type, member)\n \n+/**\n+ * member_address_is_nonnull - check whether the member address is not NULL\n+ * @ptr:\tthe object pointer (struct type * that contains the llist_node)\n+ * @member:\tthe name of the llist_node within the struct.\n+ *\n+ * This macro is conceptually the same as\n+ *\t&ptr->member != NULL\n+ * but it works around the fact that compilers can decide that taking a member\n+ * address is never a NULL pointer.\n+ *\n+ * Real objects that start at a high address and have a member at NULL are\n+ * unlikely to exist, but such pointers may be returned e.g. by the\n+ * container_of() macro.\n+ */\n+#define member_address_is_nonnull(ptr, member)\t\\\n+\t((uintptr_t)(ptr) + offsetof(typeof(*(ptr)), member) != 0)\n+\n /**\n  * llist_for_each - iterate over some deleted entries of a lock-less list\n  * @pos:\tthe &struct llist_node to use as a loop cursor\n@@ -145,7 +162,7 @@ static inline void init_llist_head(struct llist_head *list)\n  */\n #define llist_for_each_entry(pos, node, member)\t\t\t\t\\\n \tfor ((pos) = llist_entry((node), typeof(*(pos)), member);\t\\\n-\t     &(pos)->member != NULL;\t\t\t\t\t\\\n+\t     member_address_is_nonnull(pos, member);\t\t\t\\\n \t     (pos) = llist_entry((pos)->member.next, typeof(*(pos)), member))\n \n /**\n@@ -167,7 +184,7 @@ static inline void init_llist_head(struct llist_head *list)\n  */\n #define llist_for_each_entry_safe(pos, n, node, member)\t\t\t       \\\n \tfor (pos = llist_entry((node), typeof(*pos), member);\t\t       \\\n-\t     &pos->member != NULL &&\t\t\t\t\t       \\\n+\t     member_address_is_nonnull(pos, member) &&\t\t\t       \\\n \t        (n = llist_entry(pos->member.next, typeof(*n), member), true); \\\n \t     pos = n)\n "
+            "fs/ext4/super.c": "@@ -2006,17 +2006,16 @@ static int ext4_fill_flex_info(struct super_block *sb)\n \tstruct ext4_group_desc *gdp = NULL;\n \text4_group_t flex_group_count;\n \text4_group_t flex_group;\n-\tint groups_per_flex = 0;\n+\tunsigned int groups_per_flex = 0;\n \tsize_t size;\n \tint i;\n \n \tsbi->s_log_groups_per_flex = sbi->s_es->s_log_groups_per_flex;\n-\tgroups_per_flex = 1 << sbi->s_log_groups_per_flex;\n-\n-\tif (groups_per_flex < 2) {\n+\tif (sbi->s_log_groups_per_flex < 1 || sbi->s_log_groups_per_flex > 31) {\n \t\tsbi->s_log_groups_per_flex = 0;\n \t\treturn 1;\n \t}\n+\tgroups_per_flex = 1 << sbi->s_log_groups_per_flex;\n \n \t/* We allocate both existing and potentially added groups */\n \tflex_group_count = ((sbi->s_groups_count + groups_per_flex - 1) +"
         }
-    }
-### 步骤一：理解程序员的原始安全意图
-原始代码中的宏 `llist_for_each_entry` 和 `llist_for_each_entry_safe` 使用循环条件 `&(pos)->member != NULL` 来遍历一个无锁链表。程序员的意图是确保在遍历过程中，当链表节点的成员地址为 NULL 时终止循环，防止访问无效的内存地址（即防止空指针解引用），从而保证内存安全。这本质上是一个边界检查，确保迭代只在有效的链表节点上进行。
+    }  
+[Generated summary]
+**Title**: Fix undefined shift behavior in ext4 flex group sanity check.
 
-### 步骤二：识别编译器的假设与优化行为
-编译器（特别是 Clang）基于 C 语言规范进行优化。编译器假设：如果一个结构体对象的地址（`ptr`）是有效的（非 NULL），那么其成员地址（`&ptr->member`）在成员偏移量（`offsetof`）大于 0 的情况下，永远不会是 NULL。因为 NULL 在内存中通常表示为地址 0，而成员偏移量大于 0 意味着地址是 `ptr + offset`，如果 `ptr` 非 NULL，则结果必然非 0。因此，编译器可能推断出 `&(pos)->member != NULL` 这个条件永远为真，从而将整个检查优化掉（死代码消除），导致循环变成无限循环。
+**Issue**: Compiler may optimize away the check for invalid `s_log_groups_per_flex` values due to undefined shift operation, potentially allowing corrupted filesystem mounting.
 
-### 步骤三：分析“意图”与“假设”之间的冲突
-程序员的原始安全意图是依赖 `&(pos)->member != NULL` 来检查链表结束条件，但编译器的假设是：只要对象地址非 NULL 且成员偏移量大于 0，成员地址就不可能为 NULL。冲突点在于：程序员允许 `pos` 是通过 `container_of()` 等宏从 NULL 指针转换而来的特殊情况（例如，当链表节点位于结构体开头时，`container_of(NULL, type, member)` 可能返回一个指向高地址的假想对象，但其成员地址为 NULL）。编译器未考虑这种特殊情况，认为检查是冗余的，从而移除了安全检查。
+**Tag**: UB fix / security hardening.
 
-### 步骤四：判断是否满足CISB的四个必要条件
-1. **源代码安全**：原始代码在没有编译器优化时，在目标机器上是安全的。`&(pos)->member != NULL` 能正确检查链表结束条件，即使 `pos` 是通过 `container_of(NULL, ...)` 得到的非标准指针，也能正常工作。开发者利用 `&(pos)->member != NULL` 来实现边界检查，这并非未定义行为，而是依赖于指针运算的明确定义行为（C 语言中，`&ptr->member` 等价于 `(ptr) + offsetof(...)`，即使 `ptr` 是无效地址，只要不解除引用就是允许的）。
-2. **编译器引入**：编译器优化（死代码消除）在编译期间移除了 `&(pos)->member != NULL` 检查，导致循环无法终止，创建了无限循环漏洞。
-3. **代码合规**：原始代码 `&(pos)->member != NULL` 不包含任何语言关键字的错误使用。它符合 C 语言语法，且指针比较是定义良好的（尽管编译器可能基于假设进行优化）。
-4. **编译器正确**：编译器优化是形式正确的，因为编译器遵循 C 语言规范：如果 `ptr` 是非 NULL 的有效对象指针，那么 `&ptr->member` 确实不可能为 NULL（偏移量大于 0）。编译器没有违反语言规范，只是基于这一假设进行了优化。
+**Purpose**: Replace shift-based validation with a direct range check on `s_log_groups_per_flex` to avoid undefined behavior and ensure consistent security checks across compilers/architectures.
 
-### 步骤五：分类与漏洞模式匹配
-四个条件均满足，属于 CISB。漏洞模式为：编译器移除了一个安全检查（`&(pos)->member != NULL`），导致循环无法终止。这匹配 **ISpec1：安全检查被移除**（具体是空指针检查被移除）。
+---
 
-### 判断结果
-【是CISB - ISpec类】编译器基于“成员地址不可能为 NULL”的假设，优化移除了原始代码中的空指针检查，导致无限循环漏洞。
+### Step-by-Step Analysis:
+
+1. **Key Variables/Functionality**:  
+   - `sbi->s_log_groups_per_flex` (8-bit unsigned from disk) controls flex group size.  
+   - `groups_per_flex = 1 << s_log_groups_per_flex` computes group count via left shift.  
+   - Original check `if (groups_per_flex < 2)` intended to reject values 0 or 1 (invalid).
+
+2. **Compiler Behavior**:  
+   - Left shift by ≥32 on a 32-bit `int` is undefined behavior per C standard.  
+   - Compiler (Clang 3.0+) may assume shift never exceeds 31 and optimize away the `groups_per_flex < 2` check entirely.
+
+3. **Pre/Post Compilation**:  
+   - Before optimization: Code appears to check for `groups_per_flex` being 0 or 1.  
+   - After optimization: Check may be removed; large `s_log_groups_per_flex` values (≥32) could pass unchecked.
+
+4. **Security Implications**:  
+   - Without validation, corrupted `s_log_groups_per_flex` could cause divide-by-zero or memory overflows later (e.g., in `flex_group_count` calculation), leading to kernel crash or memory corruption.
+
+---
+
+1. **Did compiler accept the kernel code and compile it successfully?**  
+   [yes] The code compiled without syntax errors, but contained undefined behavior.
+
+2. **Is the issuer reporting a runtime bug, where previous code semantic assumption was damaged during optimization or default behavior?**  
+   [yes] The compiler optimization removed a security-critical sanity check due to reliance on undefined shift.
+
+3. **Without optimization or default behavior, will the difference in Step 3 disappear?**  
+   [yes] If the shift were defined (e.g., using unsigned type and range check), the compiler would not optimize away the check.
+
+4. **Did the program observable behavior change after optimization or default behavior during execution?**  
+   [yes] The check could be omitted, allowing invalid `s_log_groups_per_flex` values to pass undetected.
+
+5. **Does this change have direct or indirect security implications in the context?**  
+   [yes] Direct implications: Kernel crash (DoS) or memory corruption when mounting a maliciously crafted filesystem.
+
+**CISB Status**: CISB confirmed (all answers yes).
