@@ -1,55 +1,52 @@
-"d50f2ab6f050311dbf7b8f5501b25f0bf64a439b": {
-        "id": "d50f2ab6f050311dbf7b8f5501b25f0bf64a439b",
-        "year": "2012",
-        "message": "ext4: fix undefined behavior in ext4_fill_flex_info()\n\nCommit 503358ae01b70ce6909d19dd01287093f6b6271c (\"ext4: avoid divide by\nzero when trying to mount a corrupted file system\") fixes CVE-2009-4307\nby performing a sanity check on s_log_groups_per_flex, since it can be\nset to a bogus value by an attacker.\n\n\tsbi->s_log_groups_per_flex = sbi->s_es->s_log_groups_per_flex;\n\tgroups_per_flex = 1 << sbi->s_log_groups_per_flex;\n\n\tif (groups_per_flex < 2) { ... }\n\nThis patch fixes two potential issues in the previous commit.\n\n1) The sanity check might only work on architectures like PowerPC.\nOn x86, 5 bits are used for the shifting amount.  That means, given a\nlarge s_log_groups_per_flex value like 36, groups_per_flex = 1 << 36\nis essentially 1 << 4 = 16, rather than 0.  This will bypass the check,\nleaving s_log_groups_per_flex and groups_per_flex inconsistent.\n\n2) The sanity check relies on undefined behavior, i.e., oversized shift.\nA standard-confirming C compiler could rewrite the check in unexpected\nways.  Consider the following equivalent form, assuming groups_per_flex\nis unsigned for simplicity.\n\n\tgroups_per_flex = 1 << sbi->s_log_groups_per_flex;\n\tif (groups_per_flex == 0 || groups_per_flex == 1) {\n\nWe compile the code snippet using Clang 3.0 and GCC 4.6.  Clang will\ncompletely optimize away the check groups_per_flex == 0, leaving the\npatched code as vulnerable as the original.  GCC keeps the check, but\nthere is no guarantee that future versions will do the same.",
+"12051b318bc3ce5b42d6d786191008284b067d83": {
+        "id": "12051b318bc3ce5b42d6d786191008284b067d83",
+        "year": "2019",
+        "message": "mips: avoid explicit UB in assignment of mips_io_port_base\n\nThe code in question is modifying a variable declared const through\npointer manipulation.  Such code is explicitly undefined behavior, and\nis the lone issue preventing malta_defconfig from booting when built\nwith Clang:\n\nIf an attempt is made to modify an object defined with a const-qualified\ntype through use of an lvalue with non-const-qualified type, the\nbehavior is undefined.\n\nLLVM is removing such assignments. A simple fix is to not declare\nvariables const that you plan on modifying.  Limiting the scope would be\na better method of preventing unwanted writes to such a variable.\n\nFurther, the code in question mentions \"compiler bugs\" without any links\nto bug reports, so it is difficult to know if the issue is resolved in\nGCC. The patch was authored in 2006, which would have been GCC 4.0.3 or\n4.1.1. The minimal supported version of GCC in the Linux kernel is\ncurrently 4.6.\n\nFor what its worth, there was UB before the commit in question, it just\nadded a barrier and got lucky IRT codegen. I don't think there's any\nactual compiler bugs related, just runtime bugs due to UB.\n\nLink: https://github.com/ClangBuiltLinux/linux/issues/610\nFixes: 966f4406d903 (\"[MIPS] Work around bad code generation for <asm/io.h>.\")",
         "patches": {
-            "fs/ext4/super.c": "@@ -2006,17 +2006,16 @@ static int ext4_fill_flex_info(struct super_block *sb)\n \tstruct ext4_group_desc *gdp = NULL;\n \text4_group_t flex_group_count;\n \text4_group_t flex_group;\n-\tint groups_per_flex = 0;\n+\tunsigned int groups_per_flex = 0;\n \tsize_t size;\n \tint i;\n \n \tsbi->s_log_groups_per_flex = sbi->s_es->s_log_groups_per_flex;\n-\tgroups_per_flex = 1 << sbi->s_log_groups_per_flex;\n-\n-\tif (groups_per_flex < 2) {\n+\tif (sbi->s_log_groups_per_flex < 1 || sbi->s_log_groups_per_flex > 31) {\n \t\tsbi->s_log_groups_per_flex = 0;\n \t\treturn 1;\n \t}\n+\tgroups_per_flex = 1 << sbi->s_log_groups_per_flex;\n \n \t/* We allocate both existing and potentially added groups */\n \tflex_group_count = ((sbi->s_groups_count + groups_per_flex - 1) +"
+            "arch/mips/include/asm/io.h": "@@ -63,21 +63,11 @@\n  * instruction, so the lower 16 bits must be zero.  Should be true on\n  * on any sane architecture; generic code does not use this assumption.\n  */\n-extern const unsigned long mips_io_port_base;\n+extern unsigned long mips_io_port_base;\n \n-/*\n- * Gcc will generate code to load the value of mips_io_port_base after each\n- * function call which may be fairly wasteful in some cases.  So we don't\n- * play quite by the book.  We tell gcc mips_io_port_base is a long variable\n- * which solves the code generation issue.  Now we need to violate the\n- * aliasing rules a little to make initialization possible and finally we\n- * will need the barrier() to fight side effects of the aliasing chat.\n- * This trickery will eventually collapse under gcc's optimizer.  Oh well.\n- */\n static inline void set_io_port_base(unsigned long base)\n {\n-\t* (unsigned long *) &mips_io_port_base = base;\n-\tbarrier();\n+\tmips_io_port_base = base;\n }\n \n /*",
+            "arch/mips/kernel/setup.c": "@@ -74,7 +74,7 @@ static char __initdata builtin_cmdline[COMMAND_LINE_SIZE] = CONFIG_CMDLINE;\n  * mips_io_port_base is the begin of the address space to which x86 style\n  * I/O ports are mapped.\n  */\n-const unsigned long mips_io_port_base = -1;\n+unsigned long mips_io_port_base = -1;\n EXPORT_SYMBOL(mips_io_port_base);\n \n static struct resource code_resource = { .name = \"Kernel code\", };"
         }
-    }  
+    }
 [Generated summary]
-**Title**: Fix undefined shift behavior in ext4 flex group sanity check.
+**Title**: Fixing undefined behavior in const variable modification causing boot failure with Clang.
 
-**Issue**: Compiler may optimize away the check for invalid `s_log_groups_per_flex` values due to undefined shift operation, potentially allowing corrupted filesystem mounting.
+**Issue**: The program expected `mips_io_port_base` to be updated via a pointer cast, but Clang's optimizer removed the assignment due to undefined behavior (modifying a const variable), leading to an incorrect I/O port base and system boot failure.
 
-**Tag**: UB fix / security hardening.
+**Tag**: Undefined behavior fix, compatibility fix.
 
-**Purpose**: Replace shift-based validation with a direct range check on `s_log_groups_per_flex` to avoid undefined behavior and ensure consistent security checks across compilers/architectures.
+**Purpose**: Remove the `const` qualifier from `mips_io_port_base` and simplify assignment to avoid UB, ensuring consistent behavior across compilers.
 
 ---
 
 ### Step-by-Step Analysis:
 
 1. **Key Variables/Functionality**:  
-   - `sbi->s_log_groups_per_flex` (8-bit unsigned from disk) controls flex group size.  
-   - `groups_per_flex = 1 << s_log_groups_per_flex` computes group count via left shift.  
-   - Original check `if (groups_per_flex < 2)` intended to reject values 0 or 1 (invalid).
+   Variable `mips_io_port_base` is declared `const` and defined with initial value `-1`. Function `set_io_port_base` attempts to modify it via `*(unsigned long *)&mips_io_port_base = base;`, violating C standards by modifying a const object.
 
 2. **Compiler Behavior**:  
-   - Left shift by ≥32 on a 32-bit `int` is undefined behavior per C standard.  
-   - Compiler (Clang 3.0+) may assume shift never exceeds 31 and optimize away the `groups_per_flex < 2` check entirely.
+   Clang's optimizer assumes `const` variables never change after initialization (a valid optimization under UB). It may remove the assignment entirely, as modifying through a cast is undefined.
 
 3. **Pre/Post Compilation**:  
-   - Before optimization: Code appears to check for `groups_per_flex` being 0 or 1.  
-   - After optimization: Check may be removed; large `s_log_groups_per_flex` values (≥32) could pass unchecked.
+   Before compilation, the code intends to assign a new value to `mips_io_port_base`. After compilation with Clang, the assignment may be omitted, leaving the variable at `-1`.
 
 4. **Security Implications**:  
-   - Without validation, corrupted `s_log_groups_per_flex` could cause divide-by-zero or memory overflows later (e.g., in `flex_group_count` calculation), leading to kernel crash or memory corruption.
+   The incorrect I/O port base can cause kernel boot failure (denial of service) or misdirected I/O operations, leading to system instability or crashes.
 
 ---
 
 1. **Did compiler accept the kernel code and compile it successfully?**  
-   [yes] The code compiled without syntax errors, but contained undefined behavior.
+   Yes, the code compiled successfully, but the resulting binary had optimized-out assignments due to UB.
 
 2. **Is the issuer reporting a runtime bug, where previous code semantic assumption was damaged during optimization or default behavior?**  
-   [yes] The compiler optimization removed a security-critical sanity check due to reliance on undefined shift.
+   Yes, the runtime bug is that the assignment to `mips_io_port_base` was removed by the optimizer, breaking the expected I/O port base setup.
 
 3. **Without optimization or default behavior, will the difference in Step 3 disappear?**  
-   [yes] If the shift were defined (e.g., using unsigned type and range check), the compiler would not optimize away the check.
+   Yes, without optimization (or with a compiler that doesn't exploit this UB), the assignment might occur, but the code remains non-compliant and unreliable.
 
 4. **Did the program observable behavior change after optimization or default behavior during execution?**  
-   [yes] The check could be omitted, allowing invalid `s_log_groups_per_flex` values to pass undetected.
+   Yes, the variable remained at `-1` instead of being updated, altering I/O port addressing.
 
 5. **Does this change have direct or indirect security implications in the context?**  
-   [yes] Direct implications: Kernel crash (DoS) or memory corruption when mounting a maliciously crafted filesystem.
+   Yes, direct implications include boot failure (denial of service) and potential system crashes due to incorrect I/O port access.
 
-**CISB Status**: CISB confirmed (all answers yes).
+**CISB Status**: Yes.
