@@ -1,0 +1,2 @@
+{"timestamp":"2026-04-20T11:36:02.28526778+08:00","source":{"id":"cli/file-coverage-baseline","name":"File coverage baseline telemetry"},"visibility":{"cliSummaryTable":false,"statusPage":false,"telemetry":true},"attributes":{"durationMilliseconds":225}}
+{"timestamp":"2026-04-20T11:36:02.292909117+08:00","source":{"id":"cli/platform","name":"Platform"},"visibility":{"cliSummaryTable":false,"statusPage":false,"telemetry":true},"attributes":{"name":"Linux","version":"6.6.87.2-microsoft-standard-WSL2","arch":"amd64"}}

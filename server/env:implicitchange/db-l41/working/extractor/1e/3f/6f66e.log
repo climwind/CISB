@@ -1,0 +1,8 @@
+[E 04:09:30 33415] CodeQL C/C++ Extractor 2.25.1
+[E 04:09:30 33415] Current directory: /home/test/my-awesome-project/CISB/server/env:implicitchange
+[E 04:09:30 33415] Command: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor --assembler --codeql-assembler-executable /usr/bin/as --64 -o test1.o /tmp/ccJIBSwA.s
+[E 04:09:30 33415] Warning[extractor-c++]: In canonicalise_path: fs::canonical failed on test1.o (No such file or directory)
+[E 04:09:30 33415] Warning[extractor-c++]: In canonicalise_path: fs::canonical failed on /home/test/my-awesome-project/CISB/server/env:implicitchange/test1.o (No such file or directory)
+[E 04:09:30 33415] Warning[extractor-c++]: In print_object_names: Could not open object file "test1.o" (error 2: No such file or directory).
+[E 04:09:30 33415] Warning[extractor-c++]: In canonicalise_path: fs::canonical failed on /home/test/my-awesome-project/CISB/server/env:implicitchange/test1.o (No such file or directory)
+[E 04:09:30 33415] Extractor exited after mimicking assembler

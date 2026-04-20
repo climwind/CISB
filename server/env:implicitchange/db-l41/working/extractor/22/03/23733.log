@@ -1,0 +1,12 @@
+[E 04:09:30 33484] CodeQL C/C++ Extractor 2.25.1
+[E 04:09:30 33484] Current directory: /home/test/my-awesome-project/CISB/server/env:implicitchange
+[E 04:09:30 33484] Command: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor --mimic /usr/bin/x86_64-linux-gnu-gcc-13 -c -o test1.o test1.c
+[E 04:09:30 33484] Warning[extractor-c++]: In canonicalise_path: fs::canonical failed on test1.o (No such file or directory)
+[E 04:09:30 33484] Checking whether C compilation already happened.
+[E 04:09:30 33484] Checking for tag c-compilation-happened
+[E 04:09:30 33484] Checking CODEQL_TRACER_DB_ID 0000000000008185_0000000000000001
+[E 04:09:30 33484] Locking DB /home/test/my-awesome-project/CISB/server/env:implicitchange/db-l41/working/tags.db
+[E 04:09:30 33484] Locked DB /home/test/my-awesome-project/CISB/server/env:implicitchange/db-l41/working/tags.db
+[E 04:09:30 33484] Unlocking DB
+[E 04:09:30 33484] Unlocked DB
+[E 04:09:30 33484] Exiting as C compilation already happened.

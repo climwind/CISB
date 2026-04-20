@@ -1,0 +1,12 @@
+---
+sourceLocationPrefix: /home/test/my-awesome-project/CISB/server/partofunionnotinit
+baselineLinesOfCode: 19
+unicodeNewlines: false
+columnKind: utf8
+primaryLanguage: cpp
+creationMetadata:
+  cliVersion: 2.25.1
+  creationTime: 2026-04-20T04:16:18.586671642Z
+overlayBaseDatabase: false
+overlayDatabase: false
+finalised: true
