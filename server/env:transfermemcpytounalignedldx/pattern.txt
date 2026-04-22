@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    "Compiler optimization assumes higher data alignment (e.g., 8-byte) for memory operations",
+    "Runtime pointer alignment is insufficient (e.g., 4-byte aligned)",
+    "Architecture requires strict alignment (e.g., certain RISC architectures)"
+  ],
+  "vulnerable_pattern": "Structure definition lacks explicit alignment attributes, causing compiler to assume default or higher alignment than runtime, leading to unaligned access faults.",
+  "ql_constraints": "from StructDeclaration s where not s.hasAttribute(\"aligned\") and exists(MemoryOperation op | op.getType() = s.getType() and op.involvesUnalignedPointer())"
+}

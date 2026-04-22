@@ -1,9 +1,5 @@
 {
-  "triggers": [
-    "variable declared with const qualifier",
-    "pointer cast to non-const type used to modify the variable",
-    "compiler optimization enabled (e.g., -O1, -O2, -O3), particularly with Clang"
-  ],
-  "vulnerable_pattern": "Modifying a const-qualified variable through a pointer cast to a non-const type, leading to undefined behavior that may be optimized away.",
-  "ql_constraints": "import cpp\n\nfrom Variable v, Expr addr, CastExpr cast, Expr assign\nwhere v.isConst() and\n  addr = v.getAddress() and\n  cast.getOperand() = addr and\n  not cast.getType().getPointeeType().isConstQualified() and\n  assign.getLValue() = cast.getDereference() and\n  assign instanceof AssignmentExpr\nselect v, \"Const variable modified via pointer cast, vulnerable to compiler optimization.\""
+  "triggers": ["Clang compiler optimization assuming member address non-null for positive offsets", "Member offset greater than zero"],
+  "vulnerable_pattern": "Nullness check on the address of a struct member, using expressions like &ptr->member != NULL, &ptr->member == NULL, !&ptr->member, or if(&ptr->member), normalized to isNull(&ptr->member) or isNonNull(&ptr->member).",
+  "ql_constraints": "AddressOfExpr addrOf | addrOf.getOperand() instanceof MemberAccess and exists(Expr cond | cond = addrOf and cond.getParent() instanceof IfStmt or cond instanceof BinaryOperation and (cond.getOperator() = \"!=\" or cond.getOperator() = \"==\") and (cond.getLeftOperand() = addrOf and cond.getRightOperand().isNullLiteral() or cond.getRightOperand() = addrOf and cond.getLeftOperand().isNullLiteral()) or cond instanceof UnaryOperation and cond.getOperator() = \"!\" and cond.getOperand() = addrOf)"
 }

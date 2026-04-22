@@ -17,27 +17,35 @@ def write_output_file(filename, content):
     with open(filename, 'w', encoding='utf-8') as f:
         f.write(content)
 
-prompt = """你是一个软件安全专家，精通静态分析相关的技术。现在请你根据我筛选出的漏洞代码提取总结出漏洞模式。要求既包含漏洞的完整语义和触发条件，同时便于后续的 QL 模板代码生成参考。
-请从下面的 C 语言漏洞复现代码中提取编译器引入型漏洞模式，并以JSON格式输出结果。输出应包括以下字段：
+prompt = """你是一个软件安全专家，精通静态分析相关的技术。请根据我提供的漏洞复现代码，提炼“编译器引入型漏洞模式”，并服务于后续 CodeQL 模板生成。
 
-- triggers: 包含最关键必要的触发条件的数组，例如环境信息，程序上下文，编译优化选项等。需要高度概括且简洁。
-- vulnerable\_pattern: 漏洞代码片段的高度抽象表示。
-- ql\_constraints: 作为CodeQL检测的模板中最应关注的约束条件，用 QL 语法表示。
-  代码示例：
-  c
-  int main(int argc, char\* argv\[]) {
-  //  ./a.out 30 Getit,pleasedonottellanyoneelse
-  int n;
-  char \*password;
-- n = atoi(argv\[1]);
-  password = malloc(n);
-  for(int i = 0; i < 30; i++){
-  password\[i] = argv\[2]\[i];
-  }
-  memset(password, '\x00', n); // memset will be eliminated with option -O1/O2/O3
-  return 0;
-  }
-  请确保输出仅为JSON格式，且每一字段的信息要尽可能精简但完整。"""
+核心要求（非常重要）：
+1) 只关注“直接导致漏洞语义变化”的根因代码行。
+2) 忽略与根因无关的样板代码和上下文（如 for/while 循环框架、变量初始化、日志、普通数据搬运）。
+3) 只有当循环本身就是漏洞触发点时，才允许在模式中出现循环。
+4) 输出要最小化：用最少代码语义表达漏洞，不要复述大段上下文。
+5) 对“空值判断”做语义归一化：把不同写法统一为同一语义，不因语法形式不同而遗漏模式。
+
+空值判断等价归一化规则（必须遵守）：
+- `EXPR == NULL`、`EXPR == 0`、`!EXPR` 归一为 `isNull(EXPR)`。
+- `EXPR != NULL`、`EXPR != 0`、`!!EXPR`、`if(EXPR)` 归一为 `isNonNull(EXPR)`。
+- 若漏洞根因是“某个空值判断被优化为恒真/恒假或被错误折叠”，请输出该归一化后的语义，而不是只绑定某一种写法。
+
+请仅输出 JSON，包含以下字段：
+- triggers: 数组。仅保留必要触发条件（如编译器/优化级别/UB前提）。每项一句短语。
+- vulnerable_pattern: 字符串。仅描述根因语句的抽象模式，禁止引入非根因控制流；需要覆盖等价空值判断写法（如 `==NULL` 与 `!EXPR`）。
+- ql_constraints: 字符串。给出最关键的 CodeQL 约束（QL 风格），聚焦根因表达式及其被优化后的语义偏差；应使用“等价写法并集约束”（OR 形式）避免漏掉 `!EXPR` 这类写法。
+
+抽取步骤（在内部执行，不要输出步骤）：
+A. 先定位“哪一条表达式/条件在优化后语义被改变”。
+B. 仅保留该表达式及其必要数据依赖。
+C. 删除与根因无关的循环、拷贝、分配、打印等上下文。
+D. 将根因条件归一化后，再生成可覆盖等价语法的模式与约束。
+
+格式约束：
+- 输出必须是合法 JSON 对象。
+- 不要输出 Markdown、解释文字、代码块标记。
+- 信息精简但完整。"""
 
 # 主程序
 def main():
@@ -74,7 +82,7 @@ def main():
                 {"role": "user", "content": input_content},
             ],
             stream=False,
-            timeout=60  # 设置超时时间为60秒
+            timeout=180  # 设置超时时间为180秒
         )
         
         # 获取结果

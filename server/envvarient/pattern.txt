@@ -1,0 +1,5 @@
+{
+  "triggers": ["GCC compiler with optimization enabled (e.g., -O1, -O2, -O3)", "I/O memory context (e.g., volatile void __iomem * pointers)", "Use of standard library memory functions (memset, memcpy)"],
+  "vulnerable_pattern": "Direct call to standard memory function (memset or memcpy) with I/O memory pointer as argument in inline or static functions.",
+  "ql_constraints": "FunctionCall fc where (fc.getTarget().hasName(\"memset\") or fc.getTarget().hasName(\"memcpy\")) and fc.getArgument(0).getType().toString() like \"%__iomem%\""
+}

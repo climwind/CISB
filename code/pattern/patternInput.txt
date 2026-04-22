@@ -1,52 +1,38 @@
-"12051b318bc3ce5b42d6d786191008284b067d83": {
-        "id": "12051b318bc3ce5b42d6d786191008284b067d83",
-        "year": "2019",
-        "message": "mips: avoid explicit UB in assignment of mips_io_port_base\n\nThe code in question is modifying a variable declared const through\npointer manipulation.  Such code is explicitly undefined behavior, and\nis the lone issue preventing malta_defconfig from booting when built\nwith Clang:\n\nIf an attempt is made to modify an object defined with a const-qualified\ntype through use of an lvalue with non-const-qualified type, the\nbehavior is undefined.\n\nLLVM is removing such assignments. A simple fix is to not declare\nvariables const that you plan on modifying.  Limiting the scope would be\na better method of preventing unwanted writes to such a variable.\n\nFurther, the code in question mentions \"compiler bugs\" without any links\nto bug reports, so it is difficult to know if the issue is resolved in\nGCC. The patch was authored in 2006, which would have been GCC 4.0.3 or\n4.1.1. The minimal supported version of GCC in the Linux kernel is\ncurrently 4.6.\n\nFor what its worth, there was UB before the commit in question, it just\nadded a barrier and got lucky IRT codegen. I don't think there's any\nactual compiler bugs related, just runtime bugs due to UB.\n\nLink: https://github.com/ClangBuiltLinux/linux/issues/610\nFixes: 966f4406d903 (\"[MIPS] Work around bad code generation for <asm/io.h>.\")",
+"beaec533fc2701a28a4d667f67c9f59c6e4e0d13": {
+        "id": "beaec533fc2701a28a4d667f67c9f59c6e4e0d13",
+        "year": "2017",
+        "message": "llist: clang: introduce member_address_is_nonnull()\n\nCurrently llist_for_each_entry() and llist_for_each_entry_safe() iterate\nuntil &pos->member != NULL.  But when building the kernel with Clang,\nthe compiler assumes &pos->member cannot be NULL if the member's offset\nis greater than 0 (which would be equivalent to the object being\nnon-contiguous in memory).  Therefore the loop condition is always true,\nand the loops become infinite.\n\nTo work around this, introduce the member_address_is_nonnull() macro,\nwhich casts object pointer to uintptr_t, thus letting the member pointer\nto be NULL.",
         "patches": {
-            "arch/mips/include/asm/io.h": "@@ -63,21 +63,11 @@\n  * instruction, so the lower 16 bits must be zero.  Should be true on\n  * on any sane architecture; generic code does not use this assumption.\n  */\n-extern const unsigned long mips_io_port_base;\n+extern unsigned long mips_io_port_base;\n \n-/*\n- * Gcc will generate code to load the value of mips_io_port_base after each\n- * function call which may be fairly wasteful in some cases.  So we don't\n- * play quite by the book.  We tell gcc mips_io_port_base is a long variable\n- * which solves the code generation issue.  Now we need to violate the\n- * aliasing rules a little to make initialization possible and finally we\n- * will need the barrier() to fight side effects of the aliasing chat.\n- * This trickery will eventually collapse under gcc's optimizer.  Oh well.\n- */\n static inline void set_io_port_base(unsigned long base)\n {\n-\t* (unsigned long *) &mips_io_port_base = base;\n-\tbarrier();\n+\tmips_io_port_base = base;\n }\n \n /*",
-            "arch/mips/kernel/setup.c": "@@ -74,7 +74,7 @@ static char __initdata builtin_cmdline[COMMAND_LINE_SIZE] = CONFIG_CMDLINE;\n  * mips_io_port_base is the begin of the address space to which x86 style\n  * I/O ports are mapped.\n  */\n-const unsigned long mips_io_port_base = -1;\n+unsigned long mips_io_port_base = -1;\n EXPORT_SYMBOL(mips_io_port_base);\n \n static struct resource code_resource = { .name = \"Kernel code\", };"
+            "include/linux/llist.h": "@@ -92,6 +92,23 @@ static inline void init_llist_head(struct llist_head *list)\n #define llist_entry(ptr, type, member)\t\t\\\n \tcontainer_of(ptr, type, member)\n \n+/**\n+ * member_address_is_nonnull - check whether the member address is not NULL\n+ * @ptr:\tthe object pointer (struct type * that contains the llist_node)\n+ * @member:\tthe name of the llist_node within the struct.\n+ *\n+ * This macro is conceptually the same as\n+ *\t&ptr->member != NULL\n+ * but it works around the fact that compilers can decide that taking a member\n+ * address is never a NULL pointer.\n+ *\n+ * Real objects that start at a high address and have a member at NULL are\n+ * unlikely to exist, but such pointers may be returned e.g. by the\n+ * container_of() macro.\n+ */\n+#define member_address_is_nonnull(ptr, member)\t\\\n+\t((uintptr_t)(ptr) + offsetof(typeof(*(ptr)), member) != 0)\n+\n /**\n  * llist_for_each - iterate over some deleted entries of a lock-less list\n  * @pos:\tthe &struct llist_node to use as a loop cursor\n@@ -145,7 +162,7 @@ static inline void init_llist_head(struct llist_head *list)\n  */\n #define llist_for_each_entry(pos, node, member)\t\t\t\t\\\n \tfor ((pos) = llist_entry((node), typeof(*(pos)), member);\t\\\n-\t     &(pos)->member != NULL;\t\t\t\t\t\\\n+\t     member_address_is_nonnull(pos, member);\t\t\t\\\n \t     (pos) = llist_entry((pos)->member.next, typeof(*(pos)), member))\n \n /**\n@@ -167,7 +184,7 @@ static inline void init_llist_head(struct llist_head *list)\n  */\n #define llist_for_each_entry_safe(pos, n, node, member)\t\t\t       \\\n \tfor (pos = llist_entry((node), typeof(*pos), member);\t\t       \\\n-\t     &pos->member != NULL &&\t\t\t\t\t       \\\n+\t     member_address_is_nonnull(pos, member) &&\t\t\t       \\\n \t        (n = llist_entry(pos->member.next, typeof(*n), member), true); \\\n \t     pos = n)\n "
         }
     }
 [Generated summary]
-**Title**: Fixing undefined behavior in const variable modification causing boot failure with Clang.
+**Title**: Fix infinite loop in llist macros due to Clang optimization assuming member address non-NULL.
 
-**Issue**: The program expected `mips_io_port_base` to be updated via a pointer cast, but Clang's optimizer removed the assignment due to undefined behavior (modifying a const variable), leading to an incorrect I/O port base and system boot failure.
+**Issue**: Clang optimizes `&pos->member != NULL` to always true when member offset > 0, breaking loop termination and causing infinite iteration.
 
-**Tag**: Undefined behavior fix, compatibility fix.
+**Tag**: Compiler workaround / bug fix.
 
-**Purpose**: Remove the `const` qualifier from `mips_io_port_base` and simplify assignment to avoid UB, ensuring consistent behavior across compilers.
+**Purpose**: Replace direct member address check with integer arithmetic to prevent Clang's incorrect optimization.
 
 ---
 
 ### Step-by-Step Analysis:
 
-1. **Key Variables/Functionality**:  
-   Variable `mips_io_port_base` is declared `const` and defined with initial value `-1`. Function `set_io_port_base` attempts to modify it via `*(unsigned long *)&mips_io_port_base = base;`, violating C standards by modifying a const object.
+1. **Key Variables/Functionality**: The macros `llist_for_each_entry` and `llist_for_each_entry_safe` use `&pos->member != NULL` as loop condition. `pos` is derived via `container_of()` which can return non-NULL pointers with NULL member addresses.
 
-2. **Compiler Behavior**:  
-   Clang's optimizer assumes `const` variables never change after initialization (a valid optimization under UB). It may remove the assignment entirely, as modifying through a cast is undefined.
+2. **Compiler Behavior**: Clang assumes that taking address of a struct member with positive offset cannot yield NULL (since object base must be non-NULL due to pointer arithmetic UB), optimizing the check away.
 
-3. **Pre/Post Compilation**:  
-   Before compilation, the code intends to assign a new value to `mips_io_port_base`. After compilation with Clang, the assignment may be omitted, leaving the variable at `-1`.
+3. **Pre/Post Compilation**: Without optimization, condition evaluates at runtime; with optimization, condition becomes constant true, changing loop from terminating to infinite.
 
-4. **Security Implications**:  
-   The incorrect I/O port base can cause kernel boot failure (denial of service) or misdirected I/O operations, leading to system instability or crashes.
+4. **Security Implications**: Infinite loops cause denial of service (hang), a direct security impact in kernel context.
 
 ---
 
-1. **Did compiler accept the kernel code and compile it successfully?**  
-   Yes, the code compiled successfully, but the resulting binary had optimized-out assignments due to UB.
+1. **Yes**, compiler accepted and compiled successfully but with unintended optimization.
+2. **Yes**, runtime bug where loop termination semantic was broken by optimization.
+3. **Yes**, without optimization the condition would evaluate correctly.
+4. **Yes**, observable behavior changed from terminating loop to infinite loop.
+5. **Yes**, infinite loop leads to hang/DoS, a direct security implication.
 
-2. **Is the issuer reporting a runtime bug, where previous code semantic assumption was damaged during optimization or default behavior?**  
-   Yes, the runtime bug is that the assignment to `mips_io_port_base` was removed by the optimizer, breaking the expected I/O port base setup.
-
-3. **Without optimization or default behavior, will the difference in Step 3 disappear?**  
-   Yes, without optimization (or with a compiler that doesn't exploit this UB), the assignment might occur, but the code remains non-compliant and unreliable.
-
-4. **Did the program observable behavior change after optimization or default behavior during execution?**  
-   Yes, the variable remained at `-1` instead of being updated, altering I/O port addressing.
-
-5. **Does this change have direct or indirect security implications in the context?**  
-   Yes, direct implications include boot failure (denial of service) and potential system crashes due to incorrect I/O port access.
-
-**CISB Status**: Yes.
+**CISB Status**: CISB.

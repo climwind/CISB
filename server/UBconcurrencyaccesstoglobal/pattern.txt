@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    "Compiler optimization enabled (e.g., -O1, -O2, -O3)",
+    "Inline assembly statement without volatile qualifier",
+    "Assembly instruction reads mutable hardware state (e.g., CPUID) that changes between calls"
+  ],
+  "vulnerable_pattern": "Non-volatile inline assembly used to access mutable system state, where the assembly instruction must execute each time to reflect changes.",
+  "ql_constraints": "AsmStmt asm where not asm.isVolatile()"
+}

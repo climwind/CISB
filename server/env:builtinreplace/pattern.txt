@@ -1,0 +1,11 @@
+```json
+{
+  "triggers": [
+    "编译优化级别至少为-O1",
+    "循环对设备内存进行连续常量写入",
+    "目标平台使用不兼容的映射设备内存访问方式"
+  ],
+  "vulnerable_pattern": "for (int i = start; i < count; ++i) dev_ptr[i] = constant_value;",
+  "ql_constraints": "exists(Loop l | l.getBody().getAChild() instanceof ArrayAccess aa | aa.getArray() = pointer and pointer.getType() instanceof PointerType and pointer.getUnderlyingType() instanceof IntegerType and aa.getIndex() instanceof Variable and exists(Assignment a | a.getRhs().isConstant()) and not pointer.getType().hasQualifier(\"__iomem\"))"
+}
+```

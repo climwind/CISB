@@ -1,0 +1,10 @@
+[2026-04-21 20:23:29] This is codeql query run test1.ql --database db-l13
+[2026-04-21 20:23:29] Log file was started late.
+[2026-04-21 20:23:29] Calling plumbing command: codeql resolve ram --dataset=/home/test/my-awesome-project/CISB/server/UBpointer-offset-overflow/db-l13/db-cpp --format=json
+[2026-04-21 20:23:29] [PROGRESS] resolve ram> Stringpool size measured as 2179482
+[2026-04-21 20:23:29] Plumbing command codeql resolve ram completed:
+                      [
+                        "-J-Xmx1376M"
+                      ]
+[2026-04-21 20:23:29] Chaining via /tmp/codeql.fGEOIB59 to plumbing: execute queries -J-Xmx1376M --verbosity=progress --logdir=/home/test/my-awesome-project/CISB/server/UBpointer-offset-overflow/db-l13/log --evaluator-log-level=5 --warnings=show --qlconfig-file=/home/test/my-awesome-project/CISB/server/UBpointer-offset-overflow/qlconfig.yml --dynamic-join-order-mode=none -- /home/test/my-awesome-project/CISB/server/UBpointer-offset-overflow/db-l13/db-cpp path:/home/test/my-awesome-project/CISB/server/UBpointer-offset-overflow/test1.ql
+[2026-04-21 20:23:29] Exiting with code 70

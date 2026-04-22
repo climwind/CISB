@@ -1,46 +1,52 @@
 /**
- * @name Loop condition using address of struct member against NULL with non‑zero offset
- * @description Detects loops where the condition is `&ptr->member != NULL` and the member's byte offset
- *              within its struct is greater than zero. This can cause undefined behavior under aggressive
- *              optimizations (e.g., Clang) because a NULL pointer plus a non‑zero offset is not NULL.
- * @kind problem
- * @problem.severity warning
- * @precision high
- * @id cpp/loop-address-of-member-null-check
- * @tags correctness
- *       undefined-behavior
- *       optimization
+ * 检测 Clang 优化中因 offsetof(member) > 0 导致的 &ptr->member 地址检查被优化掉的问题
+ * 适用于 C 语言
  */
-
 import cpp
 
-/**
- * Gets the byte offset of a field within its declaring struct type.
- */
-int getStructFieldByteOffset(Field f) {
-  exists(Struct s | s = f.getDeclaringType() and result = f.getByteOffset())
+predicate isNullLike(Expr e) {
+    e.getValue() = "0" or
+    e.toString() = "NULL" or
+    e.toString() = "nullptr"
 }
 
-from
-  Loop loop, ComparisonOperation cmp, AddressOfExpr addrOf, FieldAccess fa,
-  Field field, Literal zeroLit
+from AddressOfExpr addrOf, Expr cond, FieldAccess fa
 where
-  // Loop condition is a comparison
-  loop.getCondition() = cmp and
-  // Comparison operator is "!="
-  cmp.getOperator() = "!=" and
-  // One operand is the address-of expression
-  cmp.getAnOperand() = addrOf and
-  // The other operand is the integer literal 0 (NULL)
-  cmp.getAnOperand() = zeroLit and zeroLit.getValue() = "0" and
-  // Address-of applies to a field access
-  addrOf.getOperand() = fa and
-  // The field access must be through a pointer (->), not dot (.)
-  // This is true if the qualifier's type is a pointer
-  fa.getQualifier().getType() instanceof PointerType and
-  // The field access refers to a specific field
-  fa.getTarget() = field and
-  // The field has a non-zero byte offset in its declaring struct
-  getStructFieldByteOffset(field) > 0
-select loop, "Loop condition checks address of struct member '" + field.getName() + "' against NULL, but member offset is " +
-  getStructFieldByteOffset(field) + " bytes (non‑zero). This can lead to undefined behavior when the pointer is NULL."
+    // 取地址操作的操作数是成员访问
+        addrOf.getOperand() = fa and
+    
+    // 条件表达式是取地址表达式本身或基于它的操作
+    (
+        // 情况1: 直接在 if 语句中使用 &ptr->member
+        exists(IfStmt ifs |
+            cond = addrOf and
+            ifs.getCondition() = cond
+        ) or
+        
+        // 情况2: 二元操作，如 &ptr->member != NULL 或 NULL == &ptr->member
+        exists(BinaryOperation bop |
+            cond = bop and
+            (bop.getOperator() = "!=" or bop.getOperator() = "==") and
+            (
+                (bop.getLeftOperand() = addrOf and isNullLike(bop.getRightOperand())) or
+                (bop.getRightOperand() = addrOf and isNullLike(bop.getLeftOperand()))
+            )
+        ) or
+        
+        // 情况3: 一元操作，如 !&ptr->member
+        exists(UnaryOperation uop |
+            cond = uop and
+            uop.getOperator() = "!" and
+            uop.getOperand() = addrOf
+        )
+    ) and
+    
+    // 成员偏移量大于 0
+    fa.getTarget().getByteOffset() > 0
+select 
+    cond, 
+    "警告：条件表达式 '" + cond.toString() + "' 可能被 Clang 优化掉，" +
+    "因为 offsetof(" + fa.getTarget().getName() + ") = " + 
+    fa.getTarget().getByteOffset().toString() + " > 0，" +
+    "导致 &" + fa.getQualifier().toString() + "->" + fa.getTarget().getName() + 
+    " 被错误地假设为非 NULL。"
