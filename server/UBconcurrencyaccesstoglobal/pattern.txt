@@ -1,9 +1,7 @@
+```json
 {
-  "triggers": [
-    "Compiler optimization enabled (e.g., -O1, -O2, -O3)",
-    "Inline assembly statement without volatile qualifier",
-    "Assembly instruction reads mutable hardware state (e.g., CPUID) that changes between calls"
-  ],
-  "vulnerable_pattern": "Non-volatile inline assembly used to access mutable system state, where the assembly instruction must execute each time to reflect changes.",
-  "ql_constraints": "AsmStmt asm where not asm.isVolatile()"
+    "triggers": ["Compiler optimization removes inline assembly with side effects due to missing volatile qualifier", "Two consecutive identical cpuid calls with same inputs but expecting different outputs"],
+    "vulnerable_pattern": "inline asm statement without volatile qualifier that reads hardware state which changes between calls",
+    "ql_constraints": "AsmStmt stmt and not stmt.isVolatile() and stmt.getText().matches(\"cpuid\") and exists(FunctionCall fc | fc.getTarget().getName() = \"native_cpuid\" and fc.getAPredecessor*() = fc2 and fc2.getTarget().getName() = \"native_cpuid\" and fc.getArgument(0) = fc2.getArgument(0) and fc.getArgument(2) = fc2.getArgument(2) and exists(AsmStmt asm2 | asm2 = fc2.getEnclosingStmt() and asm2.getText().matches(\"cpuid\") and asm2 != stmt))"
 }
+```

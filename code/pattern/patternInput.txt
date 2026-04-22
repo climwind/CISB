@@ -1,38 +1,51 @@
-"beaec533fc2701a28a4d667f67c9f59c6e4e0d13": {
-        "id": "beaec533fc2701a28a4d667f67c9f59c6e4e0d13",
-        "year": "2017",
-        "message": "llist: clang: introduce member_address_is_nonnull()\n\nCurrently llist_for_each_entry() and llist_for_each_entry_safe() iterate\nuntil &pos->member != NULL.  But when building the kernel with Clang,\nthe compiler assumes &pos->member cannot be NULL if the member's offset\nis greater than 0 (which would be equivalent to the object being\nnon-contiguous in memory).  Therefore the loop condition is always true,\nand the loops become infinite.\n\nTo work around this, introduce the member_address_is_nonnull() macro,\nwhich casts object pointer to uintptr_t, thus letting the member pointer\nto be NULL.",
+    "45a94d7cd45ed991914011919e7d40eb6d2546d1": {
+        "id": "45a94d7cd45ed991914011919e7d40eb6d2546d1",
+        "year": "2009",
+        "message": "x86, cpuid: Add \"volatile\" to asm in native_cpuid()\n\nxsave_cntxt_init() does something like:\n\n\tcpuid(0xd, ..);\t// find out what features FP/SSE/.. etc are supported\n\n\txsetbv();\t// enable the features known to OS\n\n\tcpuid(0xd, ..);\t// find out the size of the context for features enabled\n\nDepending on what features get enabled in xsetbv(), value of the\ncpuid.eax=0xd.ecx=0.ebx changes correspondingly (representing the\nsize of the context that is enabled).\n\nAs we don't have volatile keyword for native_cpuid(), gcc 4.1.2\noptimizes away the second cpuid and the kernel continues to use\nthe cpuid information obtained before xsetbv(), ultimately leading to kernel\ncrash on processors supporting more state than the legacy FP/SSE.\n\nAdd \"volatile\" for native_cpuid().\n\nLKML-Reference: <1261009542.2745.55.camel@sbs-t61.sc.intel.com>",
         "patches": {
-            "include/linux/llist.h": "@@ -92,6 +92,23 @@ static inline void init_llist_head(struct llist_head *list)\n #define llist_entry(ptr, type, member)\t\t\\\n \tcontainer_of(ptr, type, member)\n \n+/**\n+ * member_address_is_nonnull - check whether the member address is not NULL\n+ * @ptr:\tthe object pointer (struct type * that contains the llist_node)\n+ * @member:\tthe name of the llist_node within the struct.\n+ *\n+ * This macro is conceptually the same as\n+ *\t&ptr->member != NULL\n+ * but it works around the fact that compilers can decide that taking a member\n+ * address is never a NULL pointer.\n+ *\n+ * Real objects that start at a high address and have a member at NULL are\n+ * unlikely to exist, but such pointers may be returned e.g. by the\n+ * container_of() macro.\n+ */\n+#define member_address_is_nonnull(ptr, member)\t\\\n+\t((uintptr_t)(ptr) + offsetof(typeof(*(ptr)), member) != 0)\n+\n /**\n  * llist_for_each - iterate over some deleted entries of a lock-less list\n  * @pos:\tthe &struct llist_node to use as a loop cursor\n@@ -145,7 +162,7 @@ static inline void init_llist_head(struct llist_head *list)\n  */\n #define llist_for_each_entry(pos, node, member)\t\t\t\t\\\n \tfor ((pos) = llist_entry((node), typeof(*(pos)), member);\t\\\n-\t     &(pos)->member != NULL;\t\t\t\t\t\\\n+\t     member_address_is_nonnull(pos, member);\t\t\t\\\n \t     (pos) = llist_entry((pos)->member.next, typeof(*(pos)), member))\n \n /**\n@@ -167,7 +184,7 @@ static inline void init_llist_head(struct llist_head *list)\n  */\n #define llist_for_each_entry_safe(pos, n, node, member)\t\t\t       \\\n \tfor (pos = llist_entry((node), typeof(*pos), member);\t\t       \\\n-\t     &pos->member != NULL &&\t\t\t\t\t       \\\n+\t     member_address_is_nonnull(pos, member) &&\t\t\t       \\\n \t        (n = llist_entry(pos->member.next, typeof(*n), member), true); \\\n \t     pos = n)\n "
+            "arch/x86/include/asm/processor.h": "@@ -181,7 +181,7 @@ static inline void native_cpuid(unsigned int *eax, unsigned int *ebx,\n \t\t\t\tunsigned int *ecx, unsigned int *edx)\n {\n \t/* ecx is often an input as well as an output. */\n-\tasm(\"cpuid\"\n+\tasm volatile(\"cpuid\"\n \t    : \"=a\" (*eax),\n \t      \"=b\" (*ebx),\n \t      \"=c\" (*ecx),"
         }
     }
 [Generated summary]
-**Title**: Fix infinite loop in llist macros due to Clang optimization assuming member address non-NULL.
+**Title**: Adding volatile to cpuid asm prevents compiler from optimizing away instruction, fixing crash on CPUs with extended state.
 
-**Issue**: Clang optimizes `&pos->member != NULL` to always true when member offset > 0, breaking loop termination and causing infinite iteration.
+**Issue**: The compiler removed a cpuid instruction due to lack of volatile qualifier, causing the kernel to use stale CPU feature data after enabling extended features, leading to incorrect calculations and system crash.
 
-**Tag**: Compiler workaround / bug fix.
+**Tag**: compiler interaction fix
 
-**Purpose**: Replace direct member address check with integer arithmetic to prevent Clang's incorrect optimization.
+**Purpose**: Ensure the cpuid instruction is not optimized away by marking the inline assembly as volatile, guaranteeing it executes when called.
 
 ---
 
 ### Step-by-Step Analysis:
 
-1. **Key Variables/Functionality**: The macros `llist_for_each_entry` and `llist_for_each_entry_safe` use `&pos->member != NULL` as loop condition. `pos` is derived via `container_of()` which can return non-NULL pointers with NULL member addresses.
+1. **Key Variables/Functionality**:  
+   The `native_cpuid()` function in `arch/x86/include/asm/processor.h` executes the `cpuid` instruction to read CPU feature flags. It is called twice in `xsave_cntxt_init()`: before and after enabling extended features via `xsetbv()`. The second call must reflect the updated CPU state.
 
-2. **Compiler Behavior**: Clang assumes that taking address of a struct member with positive offset cannot yield NULL (since object base must be non-NULL due to pointer arithmetic UB), optimizing the check away.
+2. **Compiler Behavior**:  
+   GCC 4.1.2, due to the missing `volatile` qualifier, considered the `cpuid` asm as having no side effects and with outputs depending only on inputs. Since the input registers (eax, ecx) were identical between the two calls, it optimized away the second `cpuid` as redundant.
 
-3. **Pre/Post Compilation**: Without optimization, condition evaluates at runtime; with optimization, condition becomes constant true, changing loop from terminating to infinite.
+3. **Pre/Post Compilation**:  
+   Before optimization: Two `cpuid` executions occur, returning different results after `xsetbv()`. After optimization: Only one `cpuid` executes, and the second uses cached/stale results, leading to incorrect extended state size calculations.
 
-4. **Security Implications**: Infinite loops cause denial of service (hang), a direct security impact in kernel context.
+4. **Security Implications**:  
+   The crash during boot constitutes a denial-of-service (system instability). While not directly exploitable for arbitrary code execution, it breaks system reliability and could be leveraged in targeted attacks if the crash leads to undefined system states.
 
 ---
 
-1. **Yes**, compiler accepted and compiled successfully but with unintended optimization.
-2. **Yes**, runtime bug where loop termination semantic was broken by optimization.
-3. **Yes**, without optimization the condition would evaluate correctly.
-4. **Yes**, observable behavior changed from terminating loop to infinite loop.
-5. **Yes**, infinite loop leads to hang/DoS, a direct security implication.
+1. **Did compiler accept the kernel code and compile it successfully?**  
+   [yes] The compiler compiled the code without errors but applied an optimization that removed the second cpuid instruction.
 
-**CISB Status**: CISB.
+2. **Is the issuer reporting a runtime bug, where previous code semantic assumption was damaged during optimization or default behavior?**  
+   [yes] The semantic assumption that cpuid must execute each time it is called (due to changing CPU state) was violated by compiler optimization.
+
+3. **Without optimization or default behavior, will the difference in Step 3 disappear?**  
+   [yes] If the compiler did not optimize away the asm, the second cpuid would execute and return updated CPU information.
+
+4. **Did the program observable behavior change after optimization or default behavior during execution?**  
+   [yes] The system crashed during boot due to incorrect CPU feature data being used.
+
+5. **Does this change have direct or indirect security implications in the context?**  
+   [yes] A system crash is a direct denial-of-service condition, impacting availability and potentially leading to unstable states.
+
+**CISB Status**: CISB

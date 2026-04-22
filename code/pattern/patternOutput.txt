@@ -1,5 +1,7 @@
+```json
 {
-  "triggers": ["Clang compiler optimization assuming member address non-null for positive offsets", "Member offset greater than zero"],
-  "vulnerable_pattern": "Nullness check on the address of a struct member, using expressions like &ptr->member != NULL, &ptr->member == NULL, !&ptr->member, or if(&ptr->member), normalized to isNull(&ptr->member) or isNonNull(&ptr->member).",
-  "ql_constraints": "AddressOfExpr addrOf | addrOf.getOperand() instanceof MemberAccess and exists(Expr cond | cond = addrOf and cond.getParent() instanceof IfStmt or cond instanceof BinaryOperation and (cond.getOperator() = \"!=\" or cond.getOperator() = \"==\") and (cond.getLeftOperand() = addrOf and cond.getRightOperand().isNullLiteral() or cond.getRightOperand() = addrOf and cond.getLeftOperand().isNullLiteral()) or cond instanceof UnaryOperation and cond.getOperator() = \"!\" and cond.getOperand() = addrOf)"
+    "triggers": ["Compiler optimization removes inline assembly with side effects due to missing volatile qualifier", "Two consecutive identical cpuid calls with same inputs but expecting different outputs"],
+    "vulnerable_pattern": "inline asm statement without volatile qualifier that reads hardware state which changes between calls",
+    "ql_constraints": "AsmStmt stmt and not stmt.isVolatile() and stmt.getText().matches(\"cpuid\") and exists(FunctionCall fc | fc.getTarget().getName() = \"native_cpuid\" and fc.getAPredecessor*() = fc2 and fc2.getTarget().getName() = \"native_cpuid\" and fc.getArgument(0) = fc2.getArgument(0) and fc.getArgument(2) = fc2.getArgument(2) and exists(AsmStmt asm2 | asm2 = fc2.getEnclosingStmt() and asm2.getText().matches(\"cpuid\") and asm2 != stmt))"
 }
+```

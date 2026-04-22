@@ -1,9 +1,5 @@
 {
-  "triggers": [
-    "variable declared with const qualifier",
-    "pointer cast to non-const type used to modify the variable",
-    "compiler optimization enabled (e.g., -O1, -O2, -O3), particularly with Clang"
-  ],
-  "vulnerable_pattern": "Modifying a const-qualified variable through a pointer cast to a non-const type, leading to undefined behavior that may be optimized away.",
-  "ql_constraints": "import cpp\n\nfrom Variable v, Expr addr, CastExpr cast, Expr assign\nwhere v.isConst() and\n  addr = v.getAddress() and\n  cast.getOperand() = addr and\n  not cast.getType().getPointeeType().isConstQualified() and\n  assign.getLValue() = cast.getDereference() and\n  assign instanceof AssignmentExpr\nselect v, \"Const variable modified via pointer cast, vulnerable to compiler optimization.\""
+  "triggers": ["Compiler optimization removes assignments due to undefined behavior from modifying const-qualified variables."],
+  "vulnerable_pattern": "Assignment to a const-declared variable through a pointer cast that removes the const qualifier.",
+  "ql_constraints": "AssignmentExpr.getLhs().(UnaryOperator).getOperand().(CastExpr).getSubExpr().getAddressOf().getVariable().isConst()"
 }

@@ -1,34 +1,54 @@
 /**
- * 检测模式：非 volatile 的内联汇编读取可变硬件状态。
- *
- * 触发条件：
- * 1) 编译优化开启（-O1/-O2/-O3）时更容易被优化器重排或合并。
- * 2) 内联汇编语句未使用 volatile。
- * 3) 汇编指令读取会随时间/环境变化的硬件状态（例如 cpuid、rdtsc）。
- *
- * 说明：源码层面通常无法直接确认编译参数是否开启优化，
- * 本规则聚焦于源码可见的高风险模式（2)+(3)。
+ * @name Non-volatile inline cpuid used as changing hardware-state read
+ * @description Detects repeated inline cpuid reads without volatile qualifier. The compiler may remove or fold one call,
+ *              while code logic still assumes the two reads can produce different results.
+ * @kind problem
+ * @problem.severity warning
+ * @id c/nonvolatile-inline-cpuid-double-read
  */
 
 import cpp
 
-/**
- * 识别读取可变硬件状态的常见指令。
- */
-predicate readsMutableHardwareState(AsmStmt asm) {
-	asm.toString().regexpMatch("(?i).*(\\bcpuid\\b|\\brdtsc\\b|\\brdtscp\\b|\\bmrs\\b|\\bmrc\\b).*")
+/** Heuristic: inline assembly contains cpuid instruction text. */
+predicate isCpuidInlineAsm(AsmStmt asmStmt) {
+	asmStmt.toString().regexpMatch("(?s).*\\bcpuid\\b.*")
+}
+
+/** Missing volatile on inline asm can allow optimizer to remove/reorder/fold reads. */
+predicate lacksVolatileQualifier(AsmStmt asmStmt) {
+	isCpuidInlineAsm(asmStmt) and
+	not asmStmt.toString().regexpMatch("(?s).*\\bvolatile\\b.*")
+}
+
+/** Two cpuid asm statements are close and ordered in the same function. */
+predicate isNearbyRepeatedCpuid(AsmStmt first, AsmStmt second) {
+	first != second and
+	first.getEnclosingFunction() = second.getEnclosingFunction() and
+	first.getLocation().getStartLine() < second.getLocation().getStartLine() and
+	second.getLocation().getStartLine() - first.getLocation().getStartLine() <= 12 and
+	first.toString() = second.toString()
 }
 
 /**
- * 兼容当前库版本：AsmStmt 无 isVolatile()，改用文本判断 volatile 关键字。
+ * Heuristic for "expecting different outputs":
+ * near the second cpuid, there is a comparison often used to branch on changed register values.
  */
-predicate hasVolatileQualifier(AsmStmt asm) {
-	asm.toString().regexpMatch("(?i).*(\\bvolatile\\b|__volatile__).*")
+predicate hasNearbyOutputComparison(AsmStmt second) {
+	exists(BinaryOperation cmp |
+		cmp.getEnclosingFunction() = second.getEnclosingFunction() and
+		(cmp.getOperator() = "!=" or cmp.getOperator() = "==") and
+		cmp.getLocation().getStartLine() >= second.getLocation().getStartLine() - 8 and
+		cmp.getLocation().getStartLine() <= second.getLocation().getStartLine() + 20 and
+		cmp.toString().regexpMatch("(?s).*(eax|ebx|ecx|edx|a|b|c|d).*")
+	)
 }
 
-from AsmStmt asm
+from AsmStmt first, AsmStmt second
 where
-	not hasVolatileQualifier(asm) and
-	readsMutableHardwareState(asm)
-select asm,
-	"该内联汇编读取可变硬件状态但未使用 volatile；在优化编译下可能被重排/合并，导致每次调用无法保证重新执行。"
+	lacksVolatileQualifier(first) and
+	lacksVolatileQualifier(second) and
+	isNearbyRepeatedCpuid(first, second) and
+	hasNearbyOutputComparison(second)
+select second,
+	"Potential vulnerability pattern: repeated inline cpuid without 'volatile'. Compiler optimizations may remove/fold one read,"
+	+ " but surrounding logic appears to rely on output differences between calls."

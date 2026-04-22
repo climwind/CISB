@@ -1,30 +1,60 @@
-/**
- * @name 左移未定义行为导致条件检查被优化
- * @kind problem
- * @id cpp/undefined-left-shift-in-condition
- */
-
 import cpp
 
-from BinaryOperation shift, int shiftAmount
+predicate isVarCheckCmp(BinaryOperation cmp, Variable var) {
+  (
+    cmp.getOperator() = "<" and
+    exists(VariableAccess va | cmp.getLeftOperand() = va and va.getTarget() = var) and
+    cmp.getRightOperand().toString() = "2"
+  )
+  or
+  (
+    cmp.getOperator() = "==" and
+    exists(VariableAccess va | cmp.getLeftOperand() = va and va.getTarget() = var) and
+    (
+      cmp.getRightOperand().toString() = "0" or
+      cmp.getRightOperand().toString() = "1"
+    )
+  )
+}
+
+predicate condContainsVarCheck(Expr cond, Variable var) {
+  exists(BinaryOperation cmp |
+    cond = cmp and
+    isVarCheckCmp(cmp, var)
+  )
+  or
+  exists(BinaryOperation lor |
+    cond = lor and
+    lor.getOperator() = "||" and
+    (
+      condContainsVarCheck(lor.getLeftOperand(), var)
+      or
+      condContainsVarCheck(lor.getRightOperand(), var)
+    )
+  )
+}
+
+from AssignExpr assign, BinaryOperation shift, Expr amount, Variable var,
+  VariableAccess lhsVa, IfStmt ifs, Expr cond
 where
+  // 左移操作的模式：var = 1 << expr
+  assign.getRValue() = shift and
   shift.getOperator() = "<<" and
-  // 移位量为常量
-  shiftAmount = shift.getRightOperand().getValue().toInt() and
-  // 获取左操作数底层类型的大小（字节）并转换为位宽
-  exists(Type leftType, Type underlying, int bytes |
-    leftType = shift.getLeftOperand().getType() and
-    underlying = leftType.getUnderlyingType() and
-    underlying instanceof IntegralType and
-    bytes = underlying.getSize() and
-    bytes > 0 and
-    shiftAmount >= bytes * 8
+  shift.getLeftOperand().toString() = "1" and
+  amount = shift.getRightOperand() and
+  exists(IntegralType it | amount.getType() = it) and
+  assign.getLValue() = lhsVa and
+  lhsVa.getTarget() = var and
+  // 移位量可能超出操作数位宽
+  (
+    amount instanceof VariableAccess
+    or
+    exists(Literal lit |
+      amount = lit and
+      lit.toString().regexpMatch("^(3[2-9]|[4-9][0-9]|[1-9][0-9]{2,})$")
+    )
   ) and
-  // 左移表达式直接出现在条件中
-  ( exists(IfStmt s | s.getCondition() = shift) or
-    exists(WhileStmt s | s.getCondition() = shift) or
-    exists(DoStmt s | s.getCondition() = shift) or
-    exists(ForStmt s | s.getCondition() = shift) or
-    exists(ConditionalExpr ce | ce.getCondition() = shift) )
-select shift, "左移操作移位量 " + shiftAmount +
-  " 大于等于左操作数位宽，属于未定义行为。此表达式用于条件判断，编译器可能优化掉该检查。"
+  // 条件检查的模式：if (var < 2) 或等效形式
+  ifs.getCondition() = cond and
+  condContainsVarCheck(cond, var)
+select shift, "Left shift with untrusted amount may cause UB and lead to condition check removal by compiler."

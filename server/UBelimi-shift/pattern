@@ -1,5 +1,5 @@
 {
-  "triggers": ["编译优化选项启用（如-O1、-O2、-O3）", "左移操作移位量可能超出操作数类型位宽", "编译器对未定义行为进行优化（如Clang、GCC）"],
-  "vulnerable_pattern": "使用左移表达式计算值（例如 groups_per_flex = 1 << s_log_groups_per_flex），随后基于该值的条件检查（例如 if (groups_per_flex < 2)），但左移可能因移位量过大而产生未定义行为，导致检查被编译器优化掉。",
-  "ql_constraints": "LeftShiftExpr shiftExpr | shiftExpr.getShiftAmount().getValue().toInt() >= shiftExpr.getLeftOperand().getType().getSizeInBits() and exists(Expr use | use = shiftExpr.getParent() and use instanceof ConditionalExpr)"
+  "triggers": ["Compiler optimization removes condition check due to undefined left shift behavior", "Left shift amount exceeds operand bit width leading to UB"],
+  "vulnerable_pattern": "Assignment: var = 1 << expr; followed by a condition check: if (var < 2) or equivalent (e.g., var == 0 || var == 1), where expr is untrusted and may cause undefined shift.",
+  "ql_constraints": "LeftShiftExpr with shift amount expr and integer type operand, where expr may have value >= width of operand type, and the result is used in a Condition that checks for result < 2 or result == 0 or result == 1."
 }
