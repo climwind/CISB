@@ -1,0 +1,5 @@
+{
+  "triggers": ["GCC optimization assumes standard memset returns first argument", "Function ABI non-compliance for return value"],
+  "vulnerable_pattern": "Assembly function modifies the input register (used for return value) without preserving it, causing incorrect return after compiler optimization.",
+  "ql_constraints": "Function f where f.isAssembly() and f.getReturnRegister().isOverwrittenInBody() and not f.getReturnRegister().equals(f.getArgumentRegister(0))"
+}

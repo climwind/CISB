@@ -1,5 +1,9 @@
 {
-  "triggers": ["gcc 4.5 compiler", "optimization levels -O1/-O2/-O3", "ARM architecture (ARM1136 r0 cores)", "inline assembly accessing extended CP15 registers", "missing memory barrier in asm clobber list"],
-  "vulnerable_pattern": "Inline assembly reading hardware registers without a 'memory' clobber, allowing compiler to reorder the instruction above conditional checks (e.g., is_smp()), leading to unintended execution on unsupported cores.",
-  "ql_constraints": "asmStmt.getClobber() != \"memory\" and asmStmt.getInstruction() = \"mrc\" and exists(FunctionCall call | call.getName() = \"is_smp\" and asmStmt.getParent*() = call.getParent*())"
+  "triggers": [
+    "Compiler optimizations (gcc -O1 or higher) reorder or hoist sensitive operations across control flow boundaries due to missing compiler barriers",
+    "Case 1 (inline assembly): ARM1136 r0 cores lack extended CP15 registers, causing undefined instruction abort when mrc is executed before is_smp() check",
+    "Case 2 (busy-wait loop): Global variable modified externally, but compiler hoists the load out of the loop, causing infinite spin"
+  ],
+  "vulnerable_pattern": "A sensitive operation (inline asm reading privileged registers OR a non-volatile global load) appears inside a control flow construct (if branch or loop) but lacks a compiler barrier (memory clobber or barrier() call) to anchor it within that construct, allowing the compiler to move it before or outside the intended guard.",
+  "ql_constraints": "InlineAsmExpr asm where (not asm.getClobber().toString().matches(\"%memory%\") and exists(IfStmt if | asm.getEnclosingStmt*() = if.getThen() or asm.getEnclosingStmt*() = if.getElse()) and asm.getAsmString().matches(\"%mrc%|%mcr%|%mrs%|%msr%\")) or LoopStmt loop where exists(VariableAccess load | load = loop.getBody().getAChild*() and load.isLoad() and not load.getVariable().isVolatile() and load.getVariable().getType() instanceof IntegralType and not exists(FunctionCall barrier | barrier = loop.getBody().getAChild*() and barrier.getTargetName() in [\"barrier\", \"cpu_relax\", \"smp_mb\", \"rmb\", \"wmb\"]))"
 }

@@ -1,7 +1,5 @@
-```json
 {
-    "triggers": ["Compiler optimization removes inline assembly with side effects due to missing volatile qualifier", "Two consecutive identical cpuid calls with same inputs but expecting different outputs"],
-    "vulnerable_pattern": "inline asm statement without volatile qualifier that reads hardware state which changes between calls",
-    "ql_constraints": "AsmStmt stmt and not stmt.isVolatile() and stmt.getText().matches(\"cpuid\") and exists(FunctionCall fc | fc.getTarget().getName() = \"native_cpuid\" and fc.getAPredecessor*() = fc2 and fc2.getTarget().getName() = \"native_cpuid\" and fc.getArgument(0) = fc2.getArgument(0) and fc.getArgument(2) = fc2.getArgument(2) and exists(AsmStmt asm2 | asm2 = fc2.getEnclosingStmt() and asm2.getText().matches(\"cpuid\") and asm2 != stmt))"
+  "triggers": ["gcc 4.5 reorders inline assembly before conditional checks due to insufficient memory clobber", "ARM1136 r0 cores lack extended CP15 registers, causing undefined instruction abort"],
+  "vulnerable_pattern": "Inline assembly reading system registers (e.g., via mrc) is placed after a conditional test (e.g., is_smp()) in source code, but compiler optimization reorders it before the test due to missing memory barrier in clobber list.",
+  "ql_constraints": "InlineAsmExpr asm where not asm.getClobber().toString().matches(\"%memory%\") and exists(IfStmt if | asm.getEnclosingStmt() = if.getThen() or asm.getEnclosingStmt() = if.getElse()) and asm.getAsmString().matches(\"%mrc%\")"
 }
-```
