@@ -1,5 +1,10 @@
 {
-  "triggers": ["gcc 4.5 reorders inline assembly before conditional checks due to insufficient memory clobber", "ARM1136 r0 cores lack extended CP15 registers, causing undefined instruction abort"],
-  "vulnerable_pattern": "Inline assembly reading system registers (e.g., via mrc) is placed after a conditional test (e.g., is_smp()) in source code, but compiler optimization reorders it before the test due to missing memory barrier in clobber list.",
-  "ql_constraints": "InlineAsmExpr asm where not asm.getClobber().toString().matches(\"%memory%\") and exists(IfStmt if | asm.getEnclosingStmt() = if.getThen() or asm.getEnclosingStmt() = if.getElse()) and asm.getAsmString().matches(\"%mrc%\")"
+  "triggers": [
+    "gcc/clang optimization level -O1 or higher",
+    "Inline assembly with clobber 'cc' but no 'memory' (ARM case)",
+    "Conditional guard (e.g., is_smp() test) that should protect asm execution (ARM case)",
+    "Assignment loop that matches memset/memcpy pattern without -ffreestanding (Builtin case)"
+  ],
+  "vulnerable_pattern": "Compiler optimizations (instruction reordering or idiom replacement) cause operations that depend on runtime environment constraints (e.g., hardware register availability, freestanding symbol presence) to execute prematurely or be replaced by unexpected library calls, leading to undefined instruction aborts or linker failures.",
+  "ql_constraints": "exists(AsmStmt asm | asm.getClobberList().excludes(\"memory\") and asm.getClobberList().includes(\"cc\") and exists(IfStmt ifs | ifs.getCondition().(FunctionCall).getName() = \"is_smp\" and asm.getParent*() = ifs.getThen())) or exists(LoopStmt loop, AssignExpr assign | assign.getLValue().(ArrayExpr).getBase().(VarAccess).getTarget().(GlobalVar).getName() = \"a\" and assign.getRValue().getValue() = \"0x11111111\" and loop.getBody().getAChild*().contains(assign))"
 }

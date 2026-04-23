@@ -1,11 +1,10 @@
-```json
 {
   "triggers": [
-    "编译优化级别至少为-O1",
-    "循环对设备内存进行连续常量写入",
-    "目标平台使用不兼容的映射设备内存访问方式"
+    "gcc/clang optimization level -O1 or higher",
+    "Inline assembly with clobber 'cc' but no 'memory' (ARM case)",
+    "Conditional guard (e.g., is_smp() test) that should protect asm execution (ARM case)",
+    "Assignment loop that matches memset/memcpy pattern without -ffreestanding (Builtin case)"
   ],
-  "vulnerable_pattern": "for (int i = start; i < count; ++i) dev_ptr[i] = constant_value;",
-  "ql_constraints": "exists(Loop l | l.getBody().getAChild() instanceof ArrayAccess aa | aa.getArray() = pointer and pointer.getType() instanceof PointerType and pointer.getUnderlyingType() instanceof IntegerType and aa.getIndex() instanceof Variable and exists(Assignment a | a.getRhs().isConstant()) and not pointer.getType().hasQualifier(\"__iomem\"))"
+  "vulnerable_pattern": "Compiler optimizations (instruction reordering or idiom replacement) cause operations that depend on runtime environment constraints (e.g., hardware register availability, freestanding symbol presence) to execute prematurely or be replaced by unexpected library calls, leading to undefined instruction aborts or linker failures.",
+  "ql_constraints": "exists(AsmStmt asm | asm.getClobberList().excludes(\"memory\") and asm.getClobberList().includes(\"cc\") and exists(IfStmt ifs | ifs.getCondition().(FunctionCall).getName() = \"is_smp\" and asm.getParent*() = ifs.getThen())) or exists(LoopStmt loop, AssignExpr assign | assign.getLValue().(ArrayExpr).getBase().(VarAccess).getTarget().(GlobalVar).getName() = \"a\" and assign.getRValue().getValue() = \"0x11111111\" and loop.getBody().getAChild*().contains(assign))"
 }
-```
