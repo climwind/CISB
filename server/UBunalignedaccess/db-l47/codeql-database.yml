@@ -1,0 +1,12 @@
+---
+sourceLocationPrefix: /home/test/my-awesome-project/CISB/server/UBunalignedaccess
+baselineLinesOfCode: 44
+unicodeNewlines: false
+columnKind: utf8
+primaryLanguage: cpp
+creationMetadata:
+  cliVersion: 2.25.1
+  creationTime: 2026-04-25T02:27:11.195304960Z
+overlayBaseDatabase: false
+overlayDatabase: false
+finalised: true

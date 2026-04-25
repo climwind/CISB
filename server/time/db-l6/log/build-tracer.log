@@ -1,0 +1,565 @@
+[T 03:32:04 45927] CodeQL CLI version 2.25.1
+[T 03:32:04 45927] Initializing tracer.
+[T 03:32:04 45927] Initializing tags.
+[T 03:32:04 45927] ID set to 000000000000B367_0000000000000001 (parent root)
+[T 03:32:04 45927] Initializing tracer.
+[T 03:32:04 45927] Initializing tags.
+[T 03:32:04 45927] ID set to 000000000000B367_0000000000000002 (parent root)
+[T 03:32:04 45927] Warning: SEMMLE_EXEC and SEMMLE_EXECP not set. Falling back to path lookup on argv[0].
+[T 03:32:04 45927] ==== Candidate to intercept: /mnt/c/Tools/codeql/tools/linux64/runner-linux (canonical: /mnt/c/Tools/codeql/tools/linux64/runner-linux) ====
+[T 03:32:04 45927] Executing the following tracer actions:
+[T 03:32:04 45927] Tracer actions:
+[T 03:32:04 45927] pre_invocations(0)
+[T 03:32:04 45927] post_invocations(0)
+[T 03:32:04 45927] trace_languages(1): [cpp]
+[T 03:32:04 45927] Initializing tracer.
+[T 03:32:04 45927] Initializing tags.
+[T 03:32:04 45927] ID set to 000000000000B367_0000000000000003 (parent 000000000000B367_0000000000000002)
+[T 03:32:04 45927] ==== Candidate to intercept: make (canonical: /usr/bin/make) ====
+[T 03:32:04 45927] Executing the following tracer actions:
+[T 03:32:04 45927] Tracer actions:
+[T 03:32:04 45927] pre_invocations(0)
+[T 03:32:04 45927] post_invocations(0)
+[T 03:32:04 45927] trace_languages(1): [cpp]
+[T 03:32:04 45932] Initializing tracer.
+[T 03:32:04 45932] Initializing tags.
+[T 03:32:04 45932] ID set to 000000000000B36C_0000000000000001 (parent 000000000000B367_0000000000000003)
+[T 03:32:04 45932] ==== Candidate to intercept: /usr/bin/gcc (canonical: /usr/bin/x86_64-linux-gnu-gcc-13) ====
+[T 03:32:04 45932] Lua: === Intercepted call to /usr/bin/x86_64-linux-gnu-gcc-13 ===
+[T 03:32:04 45932] Executing the following tracer actions:
+[T 03:32:04 45932] Tracer actions:
+[T 03:32:04 45932] pre_invocations(0)
+[T 03:32:04 45932] post_invocations(1)
+[T 03:32:04 45932] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/bin/x86_64-linux-gnu-gcc-13, -c, -o, test1.o, test1.c]
+[T 03:32:04 45932] trace_languages(1): [cpp]
+[T 03:32:04 45934] Initializing tracer.
+[T 03:32:04 45934] Initializing tags.
+[T 03:32:04 45934] ID set to 000000000000B36E_0000000000000001 (parent 000000000000B36C_0000000000000001)
+[T 03:32:04 45934] ==== Candidate to intercept: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 (canonical: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1) ====
+[T 03:32:04 45934] Lua: === Intercepted call to /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 ===
+[T 03:32:04 45934] Executing the following tracer actions:
+[T 03:32:04 45934] Tracer actions:
+[T 03:32:04 45934] pre_invocations(0)
+[T 03:32:04 45934] post_invocations(1)
+[T 03:32:04 45934] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/libexec/gcc/x86_64-linux-gnu/13/cc1, -quiet, -imultiarch, x86_64-linux-gnu, test1.c, -quiet, -dumpbase, test1.c, -dumpbase-ext, .c, -mtune=generic, -march=x86-64, -fasynchronous-unwind-tables, -fstack-protector-strong, -Wformat, -Wformat-security, -fstack-clash-protection, -fcf-protection, -o, /tmp/ccxKl29m.s]
+[T 03:32:04 45934] trace_languages(1): [cpp]
+[T 03:32:04 45936] Attempting to switch stdout/stderr to 4...
+[T 03:32:04 45936] Initializing tracer.
+[T 03:32:04 45936] Initializing tags.
+[T 03:32:04 45936] ID set to 000000000000B370_0000000000000001 (parent 000000000000B36E_0000000000000001)
+[E 03:32:04 45936] CodeQL C/C++ Extractor 2.25.1
+[E 03:32:04 45936] Current directory: /home/test/my-awesome-project/CISB/server/time
+[E 03:32:04 45936] Command: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor --mimic /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 -quiet -imultiarch x86_64-linux-gnu test1.c -quiet -dumpbase test1.c -dumpbase-ext .c -mtune=generic -march=x86-64 -fasynchronous-unwind-tables -fstack-protector-strong -Wformat -Wformat-security -fstack-clash-protection -fcf-protection -o /tmp/ccxKl29m.s
+[T 03:32:04 45937] Initializing tracer.
+[T 03:32:04 45937] Initializing tags.
+[T 03:32:04 45937] ID set to 000000000000B371_0000000000000001 (parent 000000000000B370_0000000000000001)
+[T 03:32:04 45937] ==== Candidate to intercept: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 (canonical: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1) ====
+[T 03:32:04 45937] Lua: === Intercepted call to /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 ===
+[T 03:32:04 45937] Executing the following tracer actions:
+[T 03:32:04 45937] Tracer actions:
+[T 03:32:04 45937] pre_invocations(0)
+[T 03:32:04 45937] post_invocations(1)
+[T 03:32:04 45937] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/libexec/gcc/x86_64-linux-gnu/13/cc1, --version]
+[T 03:32:04 45937] trace_languages(1): [cpp]
+[T 03:32:04 45939] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 45939] Initializing tracer.
+[T 03:32:04 45939] Initializing tags.
+[T 03:32:04 45939] ID set to 000000000000B373_0000000000000001 (parent 000000000000B371_0000000000000001)
+[E 03:32:04 45939] Mimicry classification suppression detected; exiting.
+[E 03:32:04 45939] Extractor exited successfully
+[T 03:32:04 45937] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 45940] Initializing tracer.
+[T 03:32:04 45940] Initializing tags.
+[T 03:32:04 45940] ID set to 000000000000B374_0000000000000001 (parent 000000000000B370_0000000000000001)
+[T 03:32:04 45940] ==== Candidate to intercept: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 (canonical: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1) ====
+[T 03:32:04 45940] Lua: === Intercepted call to /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 ===
+[T 03:32:04 45940] Executing the following tracer actions:
+[T 03:32:04 45940] Tracer actions:
+[T 03:32:04 45940] pre_invocations(0)
+[T 03:32:04 45940] post_invocations(1)
+[T 03:32:04 45940] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/libexec/gcc/x86_64-linux-gnu/13/cc1, --help]
+[T 03:32:04 45940] trace_languages(1): [cpp]
+[T 03:32:04 45942] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 45942] Initializing tracer.
+[T 03:32:04 45942] Initializing tags.
+[T 03:32:04 45942] ID set to 000000000000B376_0000000000000001 (parent 000000000000B374_0000000000000001)
+[E 03:32:04 45942] Mimicry classification suppression detected; exiting.
+[E 03:32:04 45942] Extractor exited successfully
+[T 03:32:04 45940] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 45943] Initializing tracer.
+[T 03:32:04 45943] Initializing tags.
+[T 03:32:04 45943] ID set to 000000000000B377_0000000000000001 (parent 000000000000B370_0000000000000001)
+[T 03:32:04 45943] ==== Candidate to intercept: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 (canonical: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1) ====
+[T 03:32:04 45943] Lua: === Intercepted call to /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 ===
+[T 03:32:04 45943] Executing the following tracer actions:
+[T 03:32:04 45943] Tracer actions:
+[T 03:32:04 45943] pre_invocations(0)
+[T 03:32:04 45943] post_invocations(1)
+[T 03:32:04 45943] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/libexec/gcc/x86_64-linux-gnu/13/cc1, -version, --help]
+[T 03:32:04 45943] trace_languages(1): [cpp]
+[T 03:32:04 45945] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 45945] Initializing tracer.
+[T 03:32:04 45945] Initializing tags.
+[T 03:32:04 45945] ID set to 000000000000B379_0000000000000001 (parent 000000000000B377_0000000000000001)
+[E 03:32:04 45945] Mimicry classification suppression detected; exiting.
+[E 03:32:04 45945] Extractor exited successfully
+[T 03:32:04 45943] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 45946] Initializing tracer.
+[T 03:32:04 45946] Initializing tags.
+[T 03:32:04 45946] ID set to 000000000000B37A_0000000000000001 (parent 000000000000B370_0000000000000001)
+[T 03:32:04 45946] ==== Candidate to intercept: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 (canonical: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1) ====
+[T 03:32:04 45946] Lua: === Intercepted call to /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 ===
+[T 03:32:04 45946] Executing the following tracer actions:
+[T 03:32:04 45946] Tracer actions:
+[T 03:32:04 45946] pre_invocations(0)
+[T 03:32:04 45946] post_invocations(1)
+[T 03:32:04 45946] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/libexec/gcc/x86_64-linux-gnu/13/cc1, -nostdinc, -o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_2_45936_280761.o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_1_45936_280729.c]
+[T 03:32:04 45946] trace_languages(1): [cpp]
+[T 03:32:04 45948] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 45948] Initializing tracer.
+[T 03:32:04 45948] Initializing tags.
+[T 03:32:04 45948] ID set to 000000000000B37C_0000000000000001 (parent 000000000000B37A_0000000000000001)
+[E 03:32:04 45948] Mimicry classification suppression detected; exiting.
+[E 03:32:04 45948] Extractor exited successfully
+[T 03:32:04 45946] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 45949] Initializing tracer.
+[T 03:32:04 45949] Initializing tags.
+[T 03:32:04 45949] ID set to 000000000000B37D_0000000000000001 (parent 000000000000B370_0000000000000001)
+[T 03:32:04 45949] ==== Candidate to intercept: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 (canonical: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1) ====
+[T 03:32:04 45949] Lua: === Intercepted call to /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 ===
+[T 03:32:04 45949] Executing the following tracer actions:
+[T 03:32:04 45949] Tracer actions:
+[T 03:32:04 45949] pre_invocations(0)
+[T 03:32:04 45949] post_invocations(1)
+[T 03:32:04 45949] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/libexec/gcc/x86_64-linux-gnu/13/cc1, -nostdinc, -o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_4_45936_316340.o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_3_45936_316281.c]
+[T 03:32:04 45949] trace_languages(1): [cpp]
+[T 03:32:04 45951] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 45951] Initializing tracer.
+[T 03:32:04 45951] Initializing tags.
+[T 03:32:04 45951] ID set to 000000000000B37F_0000000000000001 (parent 000000000000B37D_0000000000000001)
+[E 03:32:04 45951] Mimicry classification suppression detected; exiting.
+[E 03:32:04 45951] Extractor exited successfully
+[T 03:32:04 45949] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[E 03:32:04 45936] Checking whether C compilation already happened.
+[E 03:32:04 45936] Checking for tag c-compilation-happened
+[E 03:32:04 45936] Checking CODEQL_TRACER_DB_ID 000000000000B36E_0000000000000001
+[E 03:32:04 45936] Locking DB /home/test/my-awesome-project/CISB/server/time/db-l6/working/tags.db
+[E 03:32:04 45936] Locked DB /home/test/my-awesome-project/CISB/server/time/db-l6/working/tags.db
+[E 03:32:04 45936] Unlocking DB
+[E 03:32:04 45936] Unlocked DB
+[E 03:32:04 45936] Looks like C compilation didn't already happen.
+[E 03:32:04 45936] Checking whether C compilation has been attempted.
+[E 03:32:04 45936] Checking for tag c-compilation-attempted
+[E 03:32:04 45936] Checking CODEQL_TRACER_DB_ID 000000000000B36E_0000000000000001
+[E 03:32:04 45936] Locking DB /home/test/my-awesome-project/CISB/server/time/db-l6/working/tags.db
+[E 03:32:04 45936] Locked DB /home/test/my-awesome-project/CISB/server/time/db-l6/working/tags.db
+[E 03:32:04 45936] Unlocking DB
+[E 03:32:04 45936] Unlocked DB
+[E 03:32:04 45936] Marking C compilation as attempted.
+[E 03:32:04 45936] Setting tag c-compilation-attempted
+[E 03:32:04 45936] Starting from CODEQL_TRACER_DB_ID 000000000000B36E_0000000000000001
+[E 03:32:04 45936] Locking DB /home/test/my-awesome-project/CISB/server/time/db-l6/working/tags.db
+[E 03:32:04 45936] Locked DB /home/test/my-awesome-project/CISB/server/time/db-l6/working/tags.db
+[E 03:32:04 45936] Set tag for 000000000000B36E_0000000000000001
+[E 03:32:04 45936] Set tag for 000000000000B36C_0000000000000001
+[E 03:32:04 45936] Set tag for 000000000000B367_0000000000000003
+[E 03:32:04 45936] Set tag for 000000000000B367_0000000000000002
+[E 03:32:04 45936] Set tag for root
+[E 03:32:04 45936] Unlocking DB
+[E 03:32:04 45936] Unlocked DB
+[T 03:32:04 45952] Initializing tracer.
+[T 03:32:04 45952] Initializing tags.
+[T 03:32:04 45952] ID set to 000000000000B380_0000000000000001 (parent 000000000000B370_0000000000000001)
+[T 03:32:04 45952] ==== Candidate to intercept: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 (canonical: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1) ====
+[T 03:32:04 45952] Lua: === Intercepted call to /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 ===
+[T 03:32:04 45952] Executing the following tracer actions:
+[T 03:32:04 45952] Tracer actions:
+[T 03:32:04 45952] pre_invocations(0)
+[T 03:32:04 45952] post_invocations(1)
+[T 03:32:04 45952] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/libexec/gcc/x86_64-linux-gnu/13/cc1, @/home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_6_45936_350152, -v, -fsyntax-only, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_7_45936_350284]
+[T 03:32:04 45952] trace_languages(1): [cpp]
+[T 03:32:04 45954] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 45954] Initializing tracer.
+[T 03:32:04 45954] Initializing tags.
+[T 03:32:04 45954] ID set to 000000000000B382_0000000000000001 (parent 000000000000B380_0000000000000001)
+[E 03:32:04 45954] Mimicry classification suppression detected; exiting.
+[E 03:32:04 45954] Extractor exited successfully
+[T 03:32:04 45952] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 45955] Initializing tracer.
+[T 03:32:04 45955] Initializing tags.
+[T 03:32:04 45955] ID set to 000000000000B383_0000000000000001 (parent 000000000000B370_0000000000000001)
+[T 03:32:04 45955] ==== Candidate to intercept: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 (canonical: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1) ====
+[T 03:32:04 45955] Lua: === Intercepted call to /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 ===
+[T 03:32:04 45955] Executing the following tracer actions:
+[T 03:32:04 45955] Tracer actions:
+[T 03:32:04 45955] pre_invocations(0)
+[T 03:32:04 45955] post_invocations(1)
+[T 03:32:04 45955] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/libexec/gcc/x86_64-linux-gnu/13/cc1, @/home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_6_45936_350152, -E, -dM, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_8_45936_379619]
+[T 03:32:04 45955] trace_languages(1): [cpp]
+[T 03:32:04 45957] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 45957] Initializing tracer.
+[T 03:32:04 45957] Initializing tags.
+[T 03:32:04 45957] ID set to 000000000000B385_0000000000000001 (parent 000000000000B383_0000000000000001)
+[E 03:32:04 45957] Mimicry classification suppression detected; exiting.
+[E 03:32:04 45957] Extractor exited successfully
+[T 03:32:04 45955] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 45958] Initializing tracer.
+[T 03:32:04 45958] Initializing tags.
+[T 03:32:04 45958] ID set to 000000000000B386_0000000000000001 (parent 000000000000B370_0000000000000001)
+[T 03:32:04 45958] ==== Candidate to intercept: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 (canonical: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1) ====
+[T 03:32:04 45958] Lua: === Intercepted call to /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 ===
+[T 03:32:04 45958] Executing the following tracer actions:
+[T 03:32:04 45958] Tracer actions:
+[T 03:32:04 45958] pre_invocations(0)
+[T 03:32:04 45958] post_invocations(1)
+[T 03:32:04 45958] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/libexec/gcc/x86_64-linux-gnu/13/cc1, @/home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_9_45936_409736, -o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_11_45936_410208.o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_10_45936_410156.c]
+[T 03:32:04 45958] trace_languages(1): [cpp]
+[T 03:32:04 45960] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 45960] Initializing tracer.
+[T 03:32:04 45960] Initializing tags.
+[T 03:32:04 45960] ID set to 000000000000B388_0000000000000001 (parent 000000000000B386_0000000000000001)
+[E 03:32:04 45960] Mimicry classification suppression detected; exiting.
+[E 03:32:04 45960] Extractor exited successfully
+[T 03:32:04 45958] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 45961] Initializing tracer.
+[T 03:32:04 45961] Initializing tags.
+[T 03:32:04 45961] ID set to 000000000000B389_0000000000000001 (parent 000000000000B370_0000000000000001)
+[T 03:32:04 45961] ==== Candidate to intercept: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 (canonical: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1) ====
+[T 03:32:04 45961] Lua: === Intercepted call to /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 ===
+[T 03:32:04 45961] Executing the following tracer actions:
+[T 03:32:04 45961] Tracer actions:
+[T 03:32:04 45961] pre_invocations(0)
+[T 03:32:04 45961] post_invocations(1)
+[T 03:32:04 45961] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/libexec/gcc/x86_64-linux-gnu/13/cc1, @/home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_9_45936_409736, -o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_13_45936_440659.o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_12_45936_440608.c]
+[T 03:32:04 45961] trace_languages(1): [cpp]
+[T 03:32:04 45963] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 45963] Initializing tracer.
+[T 03:32:04 45963] Initializing tags.
+[T 03:32:04 45963] ID set to 000000000000B38B_0000000000000001 (parent 000000000000B389_0000000000000001)
+[E 03:32:04 45963] Mimicry classification suppression detected; exiting.
+[E 03:32:04 45963] Extractor exited successfully
+[T 03:32:04 45961] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 45964] Initializing tracer.
+[T 03:32:04 45964] Initializing tags.
+[T 03:32:04 45964] ID set to 000000000000B38C_0000000000000001 (parent 000000000000B370_0000000000000001)
+[T 03:32:04 45964] ==== Candidate to intercept: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 (canonical: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1) ====
+[T 03:32:04 45964] Lua: === Intercepted call to /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 ===
+[T 03:32:04 45964] Executing the following tracer actions:
+[T 03:32:04 45964] Tracer actions:
+[T 03:32:04 45964] pre_invocations(0)
+[T 03:32:04 45964] post_invocations(1)
+[T 03:32:04 45964] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/libexec/gcc/x86_64-linux-gnu/13/cc1, @/home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_9_45936_409736, -o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_15_45936_473672.o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_14_45936_473625.c]
+[T 03:32:04 45964] trace_languages(1): [cpp]
+[T 03:32:04 45966] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 45966] Initializing tracer.
+[T 03:32:04 45966] Initializing tags.
+[T 03:32:04 45966] ID set to 000000000000B38E_0000000000000001 (parent 000000000000B38C_0000000000000001)
+[E 03:32:04 45966] Mimicry classification suppression detected; exiting.
+[E 03:32:04 45966] Extractor exited successfully
+[T 03:32:04 45964] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 45982] Initializing tracer.
+[T 03:32:04 45982] Initializing tags.
+[T 03:32:04 45982] ID set to 000000000000B39E_0000000000000001 (parent 000000000000B370_0000000000000001)
+[T 03:32:04 45982] ==== Candidate to intercept: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 (canonical: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1) ====
+[T 03:32:04 45982] Lua: === Intercepted call to /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 ===
+[T 03:32:04 45982] Executing the following tracer actions:
+[T 03:32:04 45982] Tracer actions:
+[T 03:32:04 45982] pre_invocations(0)
+[T 03:32:04 45982] post_invocations(1)
+[T 03:32:04 45982] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/libexec/gcc/x86_64-linux-gnu/13/cc1, @/home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_9_45936_409736, -o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_17_45936_503386.o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_16_45936_503343.c]
+[T 03:32:04 45982] trace_languages(1): [cpp]
+[T 03:32:04 45997] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 45997] Initializing tracer.
+[T 03:32:04 45997] Initializing tags.
+[T 03:32:04 45997] ID set to 000000000000B3AD_0000000000000001 (parent 000000000000B39E_0000000000000001)
+[E 03:32:04 45997] Mimicry classification suppression detected; exiting.
+[E 03:32:04 45997] Extractor exited successfully
+[T 03:32:04 45982] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 45998] Initializing tracer.
+[T 03:32:04 45998] Initializing tags.
+[T 03:32:04 45998] ID set to 000000000000B3AE_0000000000000001 (parent 000000000000B370_0000000000000001)
+[T 03:32:04 45998] ==== Candidate to intercept: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 (canonical: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1) ====
+[T 03:32:04 45998] Lua: === Intercepted call to /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 ===
+[T 03:32:04 45998] Executing the following tracer actions:
+[T 03:32:04 45998] Tracer actions:
+[T 03:32:04 45998] pre_invocations(0)
+[T 03:32:04 45998] post_invocations(1)
+[T 03:32:04 45998] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/libexec/gcc/x86_64-linux-gnu/13/cc1, @/home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_9_45936_409736, -o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_19_45936_535875.o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_18_45936_535803.c]
+[T 03:32:04 45998] trace_languages(1): [cpp]
+[T 03:32:04 46000] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 46000] Initializing tracer.
+[T 03:32:04 46000] Initializing tags.
+[T 03:32:04 46000] ID set to 000000000000B3B0_0000000000000001 (parent 000000000000B3AE_0000000000000001)
+[E 03:32:04 46000] Mimicry classification suppression detected; exiting.
+[E 03:32:04 46000] Extractor exited successfully
+[T 03:32:04 45998] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 46002] Initializing tracer.
+[T 03:32:04 46002] Initializing tags.
+[T 03:32:04 46002] ID set to 000000000000B3B2_0000000000000001 (parent 000000000000B370_0000000000000001)
+[T 03:32:04 46002] ==== Candidate to intercept: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 (canonical: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1) ====
+[T 03:32:04 46002] Lua: === Intercepted call to /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 ===
+[T 03:32:04 46002] Executing the following tracer actions:
+[T 03:32:04 46002] Tracer actions:
+[T 03:32:04 46002] pre_invocations(0)
+[T 03:32:04 46002] post_invocations(1)
+[T 03:32:04 46002] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/libexec/gcc/x86_64-linux-gnu/13/cc1, @/home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_9_45936_409736, -o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_21_45936_563592.o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_20_45936_563536.c]
+[T 03:32:04 46002] trace_languages(1): [cpp]
+[T 03:32:04 46031] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 46031] Initializing tracer.
+[T 03:32:04 46031] Initializing tags.
+[T 03:32:04 46031] ID set to 000000000000B3CF_0000000000000001 (parent 000000000000B3B2_0000000000000001)
+[E 03:32:04 46031] Mimicry classification suppression detected; exiting.
+[E 03:32:04 46031] Extractor exited successfully
+[T 03:32:04 46002] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[E 03:32:04 45936] Processed command line: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor --trapfolder /home/test/my-awesome-project/CISB/server/time/db-l6/trap/cpp --src_archive /home/test/my-awesome-project/CISB/server/time/db-l6/src --object_filename /tmp/ccxKl29m.s --no_warnings_and_discretionary_errors --error_limit 1000 --disable_system_macros --variadic_macros --incognito --gcc --gnu_version 130300 --target linux_x86_64 '-D__DBL_MIN_EXP__=(-1021)' -D__UINT_LEAST16_MAX__=0xffff -D__FLT16_HAS_QUIET_NAN__=1 -D__ATOMIC_ACQUIRE=2 -D__FLT128_MAX_10_EXP__=4932 -D__FLT_MIN__=1.17549435082228750796873653722224568e-38F -D__GCC_IEC_559_COMPLEX=2 '-D__UINT_LEAST8_TYPE__=unsigned char' -D__SIZEOF_FLOAT80__=16 -D__BFLT16_DENORM_MIN__=9.18354961579912115600575419704879436e-41BF16 '-D__INTMAX_C(c)=c ## L' -D__CHAR_BIT__=8 -D__UINT8_MAX__=0xff -D__SCHAR_WIDTH__=8 -D__WINT_MAX__=0xffffffffU '-D__FLT32_MIN_EXP__=(-125)' -D__BFLT16_NORM_MAX__=3.38953138925153547590470800371487867e+38BF16 '-D__BFLT16_MIN_10_EXP__=(-37)' -D__ORDER_LITTLE_ENDIAN__=1234 -D__WCHAR_MAX__=0x7fffffff -D__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2=1 -D__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4=1 -D__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8=1 -D__GCC_ATOMIC_CHAR_LOCK_FREE=2 -D__GCC_IEC_559=2 -D__FLT32X_DECIMAL_DIG__=17 -D__FLT_EVAL_METHOD__=0 -D__FLT64_DECIMAL_DIG__=17 -D__CET__=3 -D__GCC_ATOMIC_CHAR32_T_LOCK_FREE=2 -D__UINT_FAST64_MAX__=0xffffffffffffffffUL -D__SIG_ATOMIC_TYPE__=int '-D__DBL_MIN_10_EXP__=(-307)' -D__FINITE_MATH_ONLY__=0 -D__FLT32X_MAX_EXP__=1024 -D__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1=1 -D__FLT32_HAS_DENORM__=1 -D__UINT_FAST8_MAX__=0xff -D__FLT32_MAX_10_EXP__=38 -D__DEC64_MAX_EXP__=385 '-D__INT8_C(c)=c' -D__INT_LEAST8_WIDTH__=8 -D__UINT_LEAST64_MAX__=0xffffffffffffffffUL -D__SHRT_MAX__=0x7fff -D__LDBL_MAX__=1.18973149535723176502126385303097021e+4932L -D__FLT64X_MAX_10_EXP__=4932 -D__BFLT16_MAX_10_EXP__=38 -D__BFLT16_MAX_EXP__=128 -D__LDBL_IS_IEC_60559__=1 -D__FLT64X_HAS_QUIET_NAN__=1 -D__UINT_LEAST8_MAX__=0xff -D__GCC_ATOMIC_BOOL_LOCK_FREE=2 -D__FLT128_DENORM_MIN__=6.47517511943802511092443895822764655e-4966F128 '-D__UINTMAX_TYPE__=long unsigned int' -D__BFLT16_DECIMAL_DIG__=4 -D__linux=1 -D__DEC32_EPSILON__=1E-6DF -D__FLT_EVAL_METHOD_TS_18661_3__=0 -D__UINT32_MAX__=0xffffffffU '-D__DBL_DENORM_MIN__=((double)4.94065645841246544176568792868221372e-324L)' '-D__FLT128_MIN_EXP__=(-16381)' -D__WINT_MIN__=0U '-D__FLT128_MIN_10_EXP__=(-4931)' -D__FLT32X_IS_IEC_60559__=1 -D__INT_LEAST16_WIDTH__=16 -D__SCHAR_MAX__=0x7f -D__FLT128_MANT_DIG__=113 '-D__WCHAR_MIN__=(-__WCHAR_MAX__ - 1)' '-D__INT64_C(c)=c ## L' -D__SSP_STRONG__=3 -D__GCC_ATOMIC_POINTER_LOCK_FREE=2 -D__ATOMIC_SEQ_CST=5 -D__unix=1 -D__INT_LEAST64_MAX__=0x7fffffffffffffffL -D__FLT32X_MANT_DIG__=53 -D__FLT64X_EPSILON__=1.08420217248550443400745280086994171e-19F64x '-D__DEC64_MIN_EXP__=(-382)' -D__DBL_DIG__=15 -D__FLT_EPSILON__=1.19209289550781250000000000000000000e-7F -D__SHRT_WIDTH__=16 -D__FLT32_IS_IEC_60559__=1 -D__LDBL_MIN__=3.36210314311209350626267781732175260e-4932L -D__STDC_UTF_16__=1 -D__DBL_IS_IEC_60559__=1 -D__DEC32_MAX__=9.999999E96DF -D__FLT64X_DENORM_MIN__=3.64519953188247460252840593361941982e-4951F64x -D__FLT32X_HAS_INFINITY__=1 -D__unix__=1 -D__INT_WIDTH__=32 -D__STDC_IEC_559__=1 -D__STDC_ISO_10646__=201706L -D__DECIMAL_DIG__=21 -D__STDC_IEC_559_COMPLEX__=1 -D__FLT64_EPSILON__=2.22044604925031308084726333618164062e-16F64 -D__gnu_linux__=1 -D__FLT128_IS_IEC_60559__=1 '-D__FLT64X_MIN_10_EXP__=(-4931)' -D__LDBL_HAS_QUIET_NAN__=1 '-D__FLT16_MIN_EXP__=(-13)' -D__FLT64_MANT_DIG__=53 -D__FLT64X_MANT_DIG__=64 -D__BFLT16_DIG__=2 -D__pie__=2 -D__MMX__=1 -D__FLT_HAS_DENORM__=1 -D__SIZEOF_LONG_DOUBLE__=16 -D__BIGGEST_ALIGNMENT__=16 -D__FLT64_MAX_10_EXP__=308 -D__BFLT16_IS_IEC_60559__=0 -D__FLT16_MAX_10_EXP__=4 '-D__DBL_MAX__=((double)1.79769313486231570814527423731704357e+308L)' -D__INT_FAST32_MAX__=0x7fffffffffffffffL -D__DBL_HAS_INFINITY__=1 -D__INT64_MAX__=0x7fffffffffffffffL -D__SIZEOF_FLOAT__=4 -D__HAVE_SPECULATION_SAFE_VALUE=1 '-D__DEC32_MIN_EXP__=(-94)' -D__INTPTR_WIDTH__=64 -D__UINT_LEAST32_MAX__=0xffffffffU -D__FLT32X_HAS_DENORM__=1 '-D__INT_FAST16_TYPE__=long int' -D__MMX_WITH_SSE__=1 -D__LDBL_HAS_DENORM__=1 -D__SEG_GS=1 -D__BFLT16_EPSILON__=7.81250000000000000000000000000000000e-3BF16 -D__FLT128_HAS_INFINITY__=1 -D__DEC32_MIN__=1E-95DF -D__DBL_MAX_EXP__=1024 -D__WCHAR_WIDTH__=32 -D__FLT32_MAX__=3.40282346638528859811704183484516925e+38F32 -D__DEC128_EPSILON__=1E-33DL -D__FLT16_DECIMAL_DIG__=5 -D__SSE2_MATH__=1 -D__ATOMIC_HLE_RELEASE=131072 -D__PTRDIFF_MAX__=0x7fffffffffffffffL -D__amd64=1 -D__ATOMIC_HLE_ACQUIRE=65536 -D__LONG_LONG_MAX__=0x7fffffffffffffffLL -D__SIZEOF_SIZE_T__=8 -D__BFLT16_HAS_INFINITY__=1 '-D__FLT64X_MIN_EXP__=(-16381)' -D__SIZEOF_WINT_T__=4 -D__LONG_LONG_WIDTH__=64 -D__FLT32_MAX_EXP__=128 -D__GXX_ABI_VERSION=1018 '-D__FLT_MIN_EXP__=(-125)' -D__GCC_HAVE_DWARF2_CFI_ASM=1 -D__INT16_MAX__=0x7fff -D__x86_64=1 '-D__INT_FAST64_TYPE__=long int' -D__BFLT16_MAX__=3.38953138925153547590470800371487867e+38BF16 -D__BFLT16_HAS_DENORM__=1 -D__FLT64_DENORM_MIN__=4.94065645841246544176568792868221372e-324F64 -D__FLT16_DENORM_MIN__=5.96046447753906250000000000000000000e-8F16 -D__FLT128_EPSILON__=1.92592994438723585305597794258492732e-34F128 -D__FLT64X_NORM_MAX__=1.18973149535723176502126385303097021e+4932F64x -D__SIZEOF_POINTER__=8 '-D__SIZE_TYPE__=long unsigned int' -D__LP64__=1 -D__DBL_HAS_QUIET_NAN__=1 -D__FLT32X_EPSILON__=2.22044604925031308084726333618164062e-16F32x -D__LDBL_MAX_EXP__=16384 -D__DECIMAL_BID_FORMAT__=1 '-D__FLT64_MIN_EXP__=(-1021)' '-D__FLT64_MIN_10_EXP__=(-307)' '-D__FLT16_MIN_10_EXP__=(-4)' -D__FLT64X_DECIMAL_DIG__=21 -D__DEC128_MIN__=1E-6143DL -D__REGISTER_PREFIX__= -D__UINT16_MAX__=0xffff -D__DBL_HAS_DENORM__=1 -D__FLT32_MIN__=1.17549435082228750796873653722224568e-38F32 '-D__UINT8_TYPE__=unsigned char' -D__FLT_DIG__=6 -D__NO_INLINE__=1 -D__DEC_EVAL_METHOD__=2 -D__FLT_MANT_DIG__=24 -D__LDBL_DECIMAL_DIG__=21 '-D__UINT64_C(c)=c ## UL' -D_STDC_PREDEF_H=1 -D__INT_LEAST32_MAX__=0x7fffffff -D__GCC_ATOMIC_INT_LOCK_FREE=2 -D__FLT128_MAX_EXP__=16384 -D__FLT32_MANT_DIG__=24 -D__FLOAT_WORD_ORDER__=__ORDER_LITTLE_ENDIAN__ '-D__FLT32X_MIN_EXP__=(-1021)' -D__STDC_IEC_60559_COMPLEX__=201404L -D__BFLT16_MIN__=1.17549435082228750796873653722224568e-38BF16 -D__FLT128_HAS_DENORM__=1 -D__FLT32_DECIMAL_DIG__=9 -D__FLT128_DIG__=33 '-D__INT32_C(c)=c' -D__DEC64_EPSILON__=1E-15DD -D__ORDER_PDP_ENDIAN__=3412 '-D__DEC128_MIN_EXP__=(-6142)' -D__DEC128_MAX__=9.999999999999999999999999999999999E6144DL '-D__INT_FAST32_TYPE__=long int' '-D__UINT_LEAST16_TYPE__=short unsigned int' -D__DEC128_MAX_EXP__=6145 -Dunix=1 -D__UINT64_MAX__=0xffffffffffffffffUL -D__FLT_IS_IEC_60559__=1 '-D__GNUC_WIDE_EXECUTION_CHARSET_NAME="UTF-32LE"' -D__FLT64X_DIG__=18 '-D__INT8_TYPE__=signed char' -D__ELF__=1 -D__GCC_ASM_FLAG_OUTPUTS__=1 '-D__UINT32_TYPE__=unsigned int' -D__BFLT16_HAS_QUIET_NAN__=1 -D__FLT_RADIX__=2 '-D__INT_LEAST16_TYPE__=short int' -D__LDBL_EPSILON__=1.08420217248550443400745280086994171e-19L '-D__UINTMAX_C(c)=c ## UL' -D__FLT16_DIG__=3 -D__SSE_MATH__=1 -D__k8=1 -D__FLT32X_MIN__=2.22507385850720138309023271733240406e-308F32x -D__SIG_ATOMIC_MAX__=0x7fffffff -D__GCC_ATOMIC_WCHAR_T_LOCK_FREE=2 -D__USER_LABEL_PREFIX__= -D__STDC_IEC_60559_BFP__=201404L -D__SIZEOF_PTRDIFF_T__=8 -D__FLT64X_HAS_INFINITY__=1 -D__FLT32_HAS_INFINITY__=1 -D__SIZEOF_LONG__=8 -D__LDBL_DIG__=18 -D__FLT64_IS_IEC_60559__=1 -D__x86_64__=1 -D__FLT16_IS_IEC_60559__=1 -D__FLT16_MAX_EXP__=16 -D__DEC32_SUBNORMAL_MIN__=0.000001E-95DF -D__INT_FAST16_MAX__=0x7fffffffffffffffL -D__GCC_CONSTRUCTIVE_SIZE=64 -D__FLT64_DIG__=15 -D__UINT_FAST32_MAX__=0xffffffffffffffffUL '-D__UINT_LEAST64_TYPE__=long unsigned int' -D__FLT16_EPSILON__=9.76562500000000000000000000000000000e-4F16 -D__FLT_HAS_QUIET_NAN__=1 -D__FLT_MAX_10_EXP__=38 -D__LONG_MAX__=0x7fffffffffffffffL -D__FLT64X_HAS_DENORM__=1 -D__DEC128_SUBNORMAL_MIN__=0.000000000000000000000000000000001E-6143DL -D__FLT_HAS_INFINITY__=1 '-D__GNUC_EXECUTION_CHARSET_NAME="UTF-8"' '-D__UINT_FAST16_TYPE__=long unsigned int' -D__DEC64_MAX__=9.999999999999999E384DD -D__INT_FAST32_WIDTH__=64 -D__PRAGMA_REDEFINE_EXTNAME=1 -D__SIZE_WIDTH__=64 -D__SEG_FS=1 -D__INT_LEAST16_MAX__=0x7fff -D__FLT16_NORM_MAX__=6.55040000000000000000000000000000000e+4F16 -D__DEC64_MANT_DIG__=16 -D__FLT32_DENORM_MIN__=1.40129846432481707092372958328991613e-45F32 -D__SIG_ATOMIC_WIDTH__=32 '-D__INT_LEAST64_TYPE__=long int' '-D__INT16_TYPE__=short int' '-D__INT_LEAST8_TYPE__=signed char' -D__FLT16_MAX__=6.55040000000000000000000000000000000e+4F16 -D__FLT128_MIN__=3.36210314311209350626267781732175260e-4932F128 -D__SIZEOF_INT__=4 -D__DEC32_MAX_EXP__=97 -D__INT_FAST8_MAX__=0x7f -D__FLT128_MAX__=1.18973149535723176508575932662800702e+4932F128 -D__INTPTR_MAX__=0x7fffffffffffffffL -Dlinux=1 -D__FLT64_HAS_QUIET_NAN__=1 '-D__FLT32_MIN_10_EXP__=(-37)' -D__FLT32X_DIG__=15 '-D__UINT16_C(c)=c' -D__PTRDIFF_WIDTH__=64 -D__LDBL_MANT_DIG__=64 -D__INT_FAST16_WIDTH__=64 -D__FLT64_HAS_INFINITY__=1 -D__FLT64X_MAX__=1.18973149535723176502126385303097021e+4932F64x -D__FLT16_HAS_INFINITY__=1 '-D__SIG_ATOMIC_MIN__=(-__SIG_ATOMIC_MAX__ - 1)' -D__code_model_small__=1 -D__GCC_ATOMIC_LONG_LOCK_FREE=2 -D__DEC32_MANT_DIG__=7 -D__FLT16_MANT_DIG__=11 -D__k8__=1 '-D__INTPTR_TYPE__=long int' '-D__UINT16_TYPE__=short unsigned int' -D__WCHAR_TYPE__=int -D__pic__=2 -D__UINTPTR_MAX__=0xffffffffffffffffUL -D__INT_FAST64_WIDTH__=64 -D__LDBL_HAS_INFINITY__=1 -D__INT_FAST64_MAX__=0x7fffffffffffffffL -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -D__FLT_NORM_MAX__=3.40282346638528859811704183484516925e+38F -D__FLT64X_MAX_EXP__=16384 '-D__UINT_FAST64_TYPE__=long unsigned int' '-D__BFLT16_MIN_EXP__=(-125)' -D__INT_MAX__=0x7fffffff -D__linux__=1 '-D__INT64_TYPE__=long int' -D__FLT_MAX_EXP__=128 -D__ORDER_BIG_ENDIAN__=4321 -D__DBL_MANT_DIG__=53 -D__SIZEOF_FLOAT128__=16 -D__BFLT16_MANT_DIG__=8 -D__GCC_ATOMIC_CHAR16_T_LOCK_FREE=2 -D__DEC64_MIN__=1E-383DD '-D__WINT_TYPE__=unsigned int' '-D__UINT_LEAST32_TYPE__=unsigned int' -D__SIZEOF_SHORT__=2 -D__FLT32_NORM_MAX__=3.40282346638528859811704183484516925e+38F32 -D__SSE__=1 '-D__LDBL_MIN_EXP__=(-16381)' -D__FLT64_MAX__=1.79769313486231570814527423731704357e+308F64 -D__amd64__=1 -D__WINT_WIDTH__=32 -D__INT_LEAST8_MAX__=0x7f -D__INT_LEAST64_WIDTH__=64 -D__FLT32X_MAX_10_EXP__=308 -D__SIZEOF_INT128__=16 -D__FLT16_MIN__=6.10351562500000000000000000000000000e-5F16 -D__FLT64X_IS_IEC_60559__=1 -D__LDBL_MAX_10_EXP__=4932 -D__ATOMIC_RELAXED=0 '-D__DBL_EPSILON__=((double)2.22044604925031308084726333618164062e-16L)' -D__INT_LEAST32_TYPE__=int -D_LP64=1 '-D__UINT8_C(c)=c' -D__FLT64_MAX_EXP__=1024 -D__SIZEOF_WCHAR_T__=4 '-D__UINT64_TYPE__=long unsigned int' -D__FLT128_NORM_MAX__=1.18973149535723176508575932662800702e+4932F128 -D__FLT64_NORM_MAX__=1.79769313486231570814527423731704357e+308F64 -D__FLT128_HAS_QUIET_NAN__=1 -D__INTMAX_MAX__=0x7fffffffffffffffL '-D__INT_FAST8_TYPE__=signed char' -D__FLT64X_MIN__=3.36210314311209350626267781732175260e-4932F64x -D__FLT64_HAS_DENORM__=1 -D__FLT32_EPSILON__=1.19209289550781250000000000000000000e-7F32 -D__FLT16_HAS_DENORM__=1 -D__DBL_DECIMAL_DIG__=17 -D__STDC_UTF_32__=1 -D__INT_FAST8_WIDTH__=8 -D__FXSR__=1 -D__FLT32X_MAX__=1.79769313486231570814527423731704357e+308F32x '-D__DBL_NORM_MAX__=((double)1.79769313486231570814527423731704357e+308L)' -D__BYTE_ORDER__=__ORDER_LITTLE_ENDIAN__ -D__GCC_DESTRUCTIVE_SIZE=64 -D__INTMAX_WIDTH__=64 -D__FLT32_DIG__=6 '-D__UINT32_C(c)=c ## U' -D__FLT_DENORM_MIN__=1.40129846432481707092372958328991613e-45F -D__INT8_MAX__=0x7f -D__LONG_WIDTH__=64 '-D__DBL_MIN__=((double)2.22507385850720138309023271733240406e-308L)' -D__PIC__=2 -D__INT32_MAX__=0x7fffffff '-D__UINT_FAST32_TYPE__=long unsigned int' -D__FLT32X_NORM_MAX__=1.79769313486231570814527423731704357e+308F32x -D__FLT_MAX__=3.40282346638528859811704183484516925e+38F -D__SSE2__=1 -D__INT32_TYPE__=int -D__SIZEOF_DOUBLE__=8 '-D__FLT_MIN_10_EXP__=(-37)' -D__FLT64_MIN__=2.22507385850720138309023271733240406e-308F64 -D__INT_LEAST32_WIDTH__=32 '-D__INTMAX_TYPE__=long int' -D__FLT32X_HAS_QUIET_NAN__=1 -D__ATOMIC_CONSUME=1 -D__UINTMAX_MAX__=0xffffffffffffffffUL -D__PIE__=2 -D__FLT32X_DENORM_MIN__=4.94065645841246544176568792868221372e-324F32x -D__DBL_MAX_10_EXP__=308 -D__LDBL_DENORM_MIN__=3.64519953188247460252840593361941982e-4951L '-D__INT16_C(c)=c' '-D__PTRDIFF_TYPE__=long int' '-D__FLT32X_MIN_10_EXP__=(-307)' '-D__UINTPTR_TYPE__=long unsigned int' -D__DEC64_SUBNORMAL_MIN__=0.000000000000001E-383DD -D__DEC128_MANT_DIG__=34 '-D__LDBL_MIN_10_EXP__=(-4931)' -D__SIZEOF_LONG_LONG__=8 -D__FLT128_DECIMAL_DIG__=36 -D__GCC_ATOMIC_LLONG_LOCK_FREE=2 -D__FLT32_HAS_QUIET_NAN__=1 -D__FLT_DECIMAL_DIG__=9 -D__UINT_FAST16_MAX__=0xffffffffffffffffUL -D__LDBL_NORM_MAX__=1.18973149535723176502126385303097021e+4932L -D__GCC_ATOMIC_SHORT_LOCK_FREE=2 -D__SIZE_MAX__=0xffffffffffffffffUL '-D__UINT_FAST8_TYPE__=unsigned char' -D__ATOMIC_ACQ_REL=4 -D__ATOMIC_RELEASE=3 -I/usr/lib/gcc/x86_64-linux-gnu/13/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include -- test1.c
+[E 03:32:04 45936] CODEQL_EXTRACTOR_CPP_TRAP_CACHING is not set
+[E 03:32:04 45936] CODEQL_EXTRACTOR_CPP_OPTION_TRAP_CACHE_WRITE is not set
+[E 03:32:04 45936] CODEQL_EXTRACTOR_CPP_OPTION_TRAP_CACHE_DIR is not set
+[E 03:32:04 45936] Initialising TRAP cache at path: 7c/94ed/ed6a6722a857d655f96e66d23166
+[E 03:32:04 45936] Not using TRAP cache
+[E 03:32:04 45936] TRAP cache miss
+[E 03:32:04 45936] Starting compilation TRAP /home/test/my-awesome-project/CISB/server/time/db-l6/trap/cpp/compilations/7/14110068_0.trap.zst
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/home/test/my-awesome-project/CISB/server/time/test1.c
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/lib/gcc/x86_64-linux-gnu/13/include/stdint.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/stdint.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/libc-header-start.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/features.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/features-time64.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/wordsize.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/timesize.h
+[E 03:32:04 45936] Already archived /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/wordsize.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/stdc-predef.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/sys/cdefs.h
+[E 03:32:04 45936] Already archived /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/wordsize.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/long-double.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/gnu/stubs.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/gnu/stubs-64.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/types.h
+[E 03:32:04 45936] Already archived /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/wordsize.h
+[E 03:32:04 45936] Already archived /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/timesize.h
+[E 03:32:04 45936] Already archived /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/wordsize.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/typesizes.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/time64.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/wchar.h
+[E 03:32:04 45936] Already archived /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/wordsize.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/stdint-intn.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/stdint-uintn.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/stdint-least.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/stdio.h
+[E 03:32:04 45936] Already archived /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/libc-header-start.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/lib/gcc/x86_64-linux-gnu/13/include/stddef.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/lib/gcc/x86_64-linux-gnu/13/include/stdarg.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/types/__fpos64_t.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/types/__FILE.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/types/FILE.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/stdio_lim.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/floatn.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/floatn-common.h
+[E 03:32:04 45936] Already archived /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/long-double.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/stdlib.h
+[E 03:32:04 45936] Already archived /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/libc-header-start.h
+[E 03:32:04 45936] Already archived /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/lib/gcc/x86_64-linux-gnu/13/include/stddef.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/waitflags.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/waitstatus.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/stdlib-float.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/string.h
+[E 03:32:04 45936] Already archived /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/libc-header-start.h
+[E 03:32:04 45936] Already archived /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/lib/gcc/x86_64-linux-gnu/13/include/stddef.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/types/locale_t.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/types/__locale_t.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/time.h
+[E 03:32:04 45936] Already archived /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/lib/gcc/x86_64-linux-gnu/13/include/stddef.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/time.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/types/clock_t.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/types/time_t.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/types/struct_tm.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/types/struct_timespec.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/endian.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/endianness.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/types/clockid_t.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/types/timer_t.h
+[E 03:32:04 45936] Archiving /home/test/my-awesome-project/CISB/server/time/db-l6/src/usr/include/x86_64-linux-gnu/bits/types/struct_itimerspec.h
+[E 03:32:04 45936] Creating trap tarball /home/test/my-awesome-project/CISB/server/time/db-l6/trap/cpp/tarballs/home/test/my-awesome-project/CISB/server/time/test1.c.79cc5020_0.trap.tar.zst
+[E 03:32:04 45936] Emitting trap files for test1.c
+[E 03:32:04 45936] Opening existencedb in /home/test/my-awesome-project/CISB/server/time/db-l6/working/existencedb/db
+[E 03:32:04 45936] Wrote 57 files to /home/test/my-awesome-project/CISB/server/time/db-l6/trap/cpp/tarballs/home/test/my-awesome-project/CISB/server/time/test1.c.79cc5020_0.trap.tar.zst
+[E 03:32:04 45936] Finished compilation TRAP /home/test/my-awesome-project/CISB/server/time/db-l6/trap/cpp/compilations/7/14110068_0.trap.zst
+[E 03:32:04 45936] Marking C compilation as happened.
+[E 03:32:04 45936] Setting tag c-compilation-happened
+[E 03:32:04 45936] Starting from CODEQL_TRACER_DB_ID 000000000000B36E_0000000000000001
+[E 03:32:04 45936] Locking DB /home/test/my-awesome-project/CISB/server/time/db-l6/working/tags.db
+[E 03:32:04 45936] Locked DB /home/test/my-awesome-project/CISB/server/time/db-l6/working/tags.db
+[E 03:32:04 45936] Set tag for 000000000000B36E_0000000000000001
+[E 03:32:04 45936] Set tag for 000000000000B36C_0000000000000001
+[E 03:32:04 45936] Set tag for 000000000000B367_0000000000000003
+[E 03:32:04 45936] Set tag for 000000000000B367_0000000000000002
+[E 03:32:04 45936] Set tag for root
+[E 03:32:04 45936] Unlocking DB
+[E 03:32:04 45936] Unlocked DB
+[E 03:32:04 45936] Extractor exited successfully
+[T 03:32:04 45934] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 46145] Initializing tracer.
+[T 03:32:04 46145] Initializing tags.
+[T 03:32:04 46145] ID set to 000000000000B441_0000000000000001 (parent 000000000000B36C_0000000000000001)
+[T 03:32:04 46145] ==== Candidate to intercept: as (canonical: /usr/bin/as) ====
+[T 03:32:04 46145] Lua: === Intercepted call to /usr/bin/as ===
+[T 03:32:04 46145] Executing the following tracer actions:
+[T 03:32:04 46145] Tracer actions:
+[T 03:32:04 46145] pre_invocations(0)
+[T 03:32:04 46145] post_invocations(1)
+[T 03:32:04 46145] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--assembler, --codeql-assembler-executable, /usr/bin/as, --64, -o, test1.o, /tmp/ccxKl29m.s]
+[T 03:32:04 46145] trace_languages(1): [cpp]
+[T 03:32:04 46160] Attempting to switch stdout/stderr to 4...
+[T 03:32:04 46160] Initializing tracer.
+[T 03:32:04 46160] Initializing tags.
+[T 03:32:04 46160] ID set to 000000000000B450_0000000000000001 (parent 000000000000B441_0000000000000001)
+[E 03:32:04 46160] CodeQL C/C++ Extractor 2.25.1
+[E 03:32:04 46160] Current directory: /home/test/my-awesome-project/CISB/server/time
+[E 03:32:04 46160] Command: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor --assembler --codeql-assembler-executable /usr/bin/as --64 -o test1.o /tmp/ccxKl29m.s
+[E 03:32:04 46160] Extractor exited after mimicking assembler
+[T 03:32:04 46145] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 46217] Attempting to switch stdout/stderr to 4...
+[T 03:32:04 46217] Initializing tracer.
+[T 03:32:04 46217] Initializing tags.
+[T 03:32:04 46217] ID set to 000000000000B489_0000000000000001 (parent 000000000000B36C_0000000000000001)
+[E 03:32:04 46217] CodeQL C/C++ Extractor 2.25.1
+[E 03:32:04 46217] Current directory: /home/test/my-awesome-project/CISB/server/time
+[E 03:32:04 46217] Command: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor --mimic /usr/bin/x86_64-linux-gnu-gcc-13 -c -o test1.o test1.c
+[T 03:32:04 46261] Initializing tracer.
+[T 03:32:04 46261] Initializing tags.
+[T 03:32:04 46261] ID set to 000000000000B4B5_0000000000000001 (parent 000000000000B489_0000000000000001)
+[T 03:32:04 46261] ==== Candidate to intercept: /usr/bin/x86_64-linux-gnu-gcc-13 (canonical: /usr/bin/x86_64-linux-gnu-gcc-13) ====
+[T 03:32:04 46261] Lua: === Intercepted call to /usr/bin/x86_64-linux-gnu-gcc-13 ===
+[T 03:32:04 46261] Executing the following tracer actions:
+[T 03:32:04 46261] Tracer actions:
+[T 03:32:04 46261] pre_invocations(0)
+[T 03:32:04 46261] post_invocations(1)
+[T 03:32:04 46261] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/bin/x86_64-linux-gnu-gcc-13, --version]
+[T 03:32:04 46261] trace_languages(1): [cpp]
+[T 03:32:04 46276] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 46276] Initializing tracer.
+[T 03:32:04 46276] Initializing tags.
+[T 03:32:04 46276] ID set to 000000000000B4C4_0000000000000001 (parent 000000000000B4B5_0000000000000001)
+[E 03:32:04 46276] Mimicry classification suppression detected; exiting.
+[E 03:32:04 46276] Extractor exited successfully
+[T 03:32:04 46261] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 46291] Initializing tracer.
+[T 03:32:04 46291] Initializing tags.
+[T 03:32:04 46291] ID set to 000000000000B4D3_0000000000000001 (parent 000000000000B489_0000000000000001)
+[T 03:32:04 46291] ==== Candidate to intercept: /usr/bin/x86_64-linux-gnu-gcc-13 (canonical: /usr/bin/x86_64-linux-gnu-gcc-13) ====
+[T 03:32:04 46291] Lua: === Intercepted call to /usr/bin/x86_64-linux-gnu-gcc-13 ===
+[T 03:32:04 46291] Executing the following tracer actions:
+[T 03:32:04 46291] Tracer actions:
+[T 03:32:04 46291] pre_invocations(0)
+[T 03:32:04 46291] post_invocations(1)
+[T 03:32:04 46291] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/bin/x86_64-linux-gnu-gcc-13, --help]
+[T 03:32:04 46291] trace_languages(1): [cpp]
+[T 03:32:04 46294] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 46294] Initializing tracer.
+[T 03:32:04 46294] Initializing tags.
+[T 03:32:04 46294] ID set to 000000000000B4D6_0000000000000001 (parent 000000000000B4D3_0000000000000001)
+[E 03:32:04 46294] Mimicry classification suppression detected; exiting.
+[E 03:32:04 46294] Extractor exited successfully
+[T 03:32:04 46291] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 46308] Initializing tracer.
+[T 03:32:04 46308] Initializing tags.
+[T 03:32:04 46308] ID set to 000000000000B4E4_0000000000000001 (parent 000000000000B489_0000000000000001)
+[T 03:32:04 46308] ==== Candidate to intercept: /usr/bin/x86_64-linux-gnu-gcc-13 (canonical: /usr/bin/x86_64-linux-gnu-gcc-13) ====
+[T 03:32:04 46308] Lua: === Intercepted call to /usr/bin/x86_64-linux-gnu-gcc-13 ===
+[T 03:32:04 46308] Executing the following tracer actions:
+[T 03:32:04 46308] Tracer actions:
+[T 03:32:04 46308] pre_invocations(0)
+[T 03:32:04 46308] post_invocations(1)
+[T 03:32:04 46308] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/bin/x86_64-linux-gnu-gcc-13, -nostdinc, -o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_2_46217_908013.o, -c, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_1_46217_907950.c]
+[T 03:32:04 46308] trace_languages(1): [cpp]
+[T 03:32:04 46311] Initializing tracer.
+[T 03:32:04 46311] Initializing tags.
+[T 03:32:04 46311] ID set to 000000000000B4E7_0000000000000001 (parent 000000000000B4E4_0000000000000001)
+[T 03:32:04 46311] ==== Candidate to intercept: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 (canonical: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1) ====
+[T 03:32:04 46311] Lua: === Intercepted call to /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 ===
+[T 03:32:04 46311] Executing the following tracer actions:
+[T 03:32:04 46311] Tracer actions:
+[T 03:32:04 46311] pre_invocations(0)
+[T 03:32:04 46311] post_invocations(1)
+[T 03:32:04 46311] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/libexec/gcc/x86_64-linux-gnu/13/cc1, -quiet, -nostdinc, -imultiarch, x86_64-linux-gnu, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_1_46217_907950.c, -quiet, -dumpdir, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//, -dumpbase, semmle_2_46217_908013.c, -dumpbase-ext, .c, -mtune=generic, -march=x86-64, -fasynchronous-unwind-tables, -fstack-protector-strong, -Wformat, -Wformat-security, -fstack-clash-protection, -fcf-protection, -o, /tmp/cc53AFBU.s]
+[T 03:32:04 46311] trace_languages(1): [cpp]
+[T 03:32:04 46327] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 46327] Initializing tracer.
+[T 03:32:04 46327] Initializing tags.
+[T 03:32:04 46327] ID set to 000000000000B4F7_0000000000000001 (parent 000000000000B4E7_0000000000000001)
+[E 03:32:04 46327] Mimicry classification suppression detected; exiting.
+[E 03:32:04 46327] Extractor exited successfully
+[T 03:32:04 46311] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 46341] Initializing tracer.
+[T 03:32:04 46341] Initializing tags.
+[T 03:32:04 46341] ID set to 000000000000B505_0000000000000001 (parent 000000000000B4E4_0000000000000001)
+[T 03:32:04 46341] ==== Candidate to intercept: as (canonical: /usr/bin/as) ====
+[T 03:32:04 46341] Lua: === Intercepted call to /usr/bin/as ===
+[T 03:32:04 46341] Executing the following tracer actions:
+[T 03:32:04 46341] Tracer actions:
+[T 03:32:04 46341] pre_invocations(0)
+[T 03:32:04 46341] post_invocations(1)
+[T 03:32:04 46341] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--assembler, --codeql-assembler-executable, /usr/bin/as, --64, -o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_2_46217_908013.o, /tmp/cc53AFBU.s]
+[T 03:32:04 46341] trace_languages(1): [cpp]
+[T 03:32:04 46343] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 46343] Initializing tracer.
+[T 03:32:04 46343] Initializing tags.
+[T 03:32:04 46343] ID set to 000000000000B507_0000000000000001 (parent 000000000000B505_0000000000000001)
+[E 03:32:04 46343] Mimicry classification suppression detected; exiting.
+[E 03:32:04 46343] Extractor exited successfully
+[T 03:32:04 46341] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 46344] Attempting to switch stdout/stderr to 7...
+[T 03:32:04 46344] Initializing tracer.
+[T 03:32:04 46344] Initializing tags.
+[T 03:32:04 46344] ID set to 000000000000B508_0000000000000001 (parent 000000000000B4E4_0000000000000001)
+[E 03:32:04 46344] Mimicry classification suppression detected; exiting.
+[E 03:32:04 46344] Extractor exited successfully
+[T 03:32:04 46308] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:04 46345] Initializing tracer.
+[T 03:32:04 46345] Initializing tags.
+[T 03:32:04 46345] ID set to 000000000000B509_0000000000000001 (parent 000000000000B489_0000000000000001)
+[T 03:32:04 46345] ==== Candidate to intercept: /usr/bin/x86_64-linux-gnu-gcc-13 (canonical: /usr/bin/x86_64-linux-gnu-gcc-13) ====
+[T 03:32:04 46345] Lua: === Intercepted call to /usr/bin/x86_64-linux-gnu-gcc-13 ===
+[T 03:32:04 46345] Executing the following tracer actions:
+[T 03:32:04 46345] Tracer actions:
+[T 03:32:04 46345] pre_invocations(0)
+[T 03:32:04 46345] post_invocations(1)
+[T 03:32:04 46345] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/bin/x86_64-linux-gnu-gcc-13, -nostdinc, -o, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_4_46217_982885.o, -c, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_3_46217_982825.c]
+[T 03:32:04 46345] trace_languages(1): [cpp]
+[T 03:32:04 46347] Initializing tracer.
+[T 03:32:04 46347] Initializing tags.
+[T 03:32:04 46347] ID set to 000000000000B50B_0000000000000001 (parent 000000000000B509_0000000000000001)
+[T 03:32:04 46347] ==== Candidate to intercept: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 (canonical: /usr/libexec/gcc/x86_64-linux-gnu/13/cc1) ====
+[T 03:32:04 46347] Lua: === Intercepted call to /usr/libexec/gcc/x86_64-linux-gnu/13/cc1 ===
+[T 03:32:04 46347] Executing the following tracer actions:
+[T 03:32:04 46347] Tracer actions:
+[T 03:32:04 46347] pre_invocations(0)
+[T 03:32:04 46347] post_invocations(1)
+[T 03:32:04 46347] invocation: /mnt/c/Tools/codeql/cpp/tools/linux64/extractor, args: [--mimic, /usr/libexec/gcc/x86_64-linux-gnu/13/cc1, -quiet, -nostdinc, -imultiarch, x86_64-linux-gnu, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//semmle_3_46217_982825.c, -quiet, -dumpdir, /home/test/my-awesome-project/CISB/server/time/db-l6/working/tmp//, -dumpbase, semmle_4_46217_982885.c, -dumpbase-ext, .c, -mtune=generic, -march=x86-64, -fasynchronous-unwind-tables, -fstack-protector-strong, -Wformat, -Wformat-security, -fstack-clash-protection, -fcf-protection, -o, /tmp/ccUt7eWC.s]
+[T 03:32:04 46347] trace_languages(1): [cpp]
+[T 03:32:04 46349] Attempting to switch stdout/stderr to 7...
+[T 03:32:05 46349] Initializing tracer.
+[T 03:32:05 46349] Initializing tags.
+[T 03:32:05 46349] ID set to 000000000000B50D_0000000000000001 (parent 000000000000B50B_0000000000000001)
+[E 03:32:05 46349] Mimicry classification suppression detected; exiting.
+[E 03:32:05 46349] Extractor exited successfully
+[T 03:32:05 46347] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[T 03:32:05 46351] Attempting to switch stdout/stderr to 7...
+[T 03:32:05 46351] Initializing tracer.
+[T 03:32:05 46351] Initializing tags.
+[T 03:32:05 46351] ID set to 000000000000B50F_0000000000000001 (parent 000000000000B509_0000000000000001)
+[E 03:32:05 46351] Mimicry classification suppression detected; exiting.
+[E 03:32:05 46351] Extractor exited successfully
+[T 03:32:05 46345] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.
+[E 03:32:05 46217] Checking whether C compilation already happened.
+[E 03:32:05 46217] Checking for tag c-compilation-happened
+[E 03:32:05 46217] Checking CODEQL_TRACER_DB_ID 000000000000B36C_0000000000000001
+[E 03:32:05 46217] Locking DB /home/test/my-awesome-project/CISB/server/time/db-l6/working/tags.db
+[E 03:32:05 46217] Locked DB /home/test/my-awesome-project/CISB/server/time/db-l6/working/tags.db
+[E 03:32:05 46217] Unlocking DB
+[E 03:32:05 46217] Unlocked DB
+[E 03:32:05 46217] Exiting as C compilation already happened.
+[T 03:32:05 45932] Extractor /mnt/c/Tools/codeql/cpp/tools/linux64/extractor terminated with exit code 0.

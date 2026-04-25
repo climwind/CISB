@@ -1,0 +1,3 @@
+name: test25
+dependencies:
+  codeql/cpp-all: '*'

@@ -1,0 +1,704 @@
+[2026-04-25 11:27:33] This is codeql database create --language=cpp --command=make db-l4
+[2026-04-25 11:27:33] Log file was started late.
+[2026-04-25 11:27:33] [PROGRESS] database create> Initializing database at /home/test/my-awesome-project/CISB/server/datarace/db-l4.
+[2026-04-25 11:27:33] Running plumbing command: codeql database init --language=cpp --extractor-options-verbosity=1 --qlconfig-file=/home/test/my-awesome-project/CISB/server/datarace/qlconfig.yml --source-root=/home/test/my-awesome-project/CISB/server/datarace --allow-missing-source-root=false --allow-already-existing -- /home/test/my-awesome-project/CISB/server/datarace/db-l4
+[2026-04-25 11:27:33] Calling plumbing command: codeql resolve languages --extractor-options-verbosity=1 --format=betterjson
+[2026-04-25 11:27:34] [DETAILS] resolve languages> Scanning for [codeql-extractor.yml] from /mnt/c/Tools/codeql/.codeqlmanifest.json
+[2026-04-25 11:27:34] [DETAILS] resolve languages> Parsing /mnt/c/Tools/codeql/actions/codeql-extractor.yml.
+[2026-04-25 11:27:34] [DETAILS] resolve languages> Parsing /mnt/c/Tools/codeql/cpp/codeql-extractor.yml.
+[2026-04-25 11:27:34] [DETAILS] resolve languages> Parsing /mnt/c/Tools/codeql/csharp/codeql-extractor.yml.
+[2026-04-25 11:27:34] [DETAILS] resolve languages> Parsing /mnt/c/Tools/codeql/csv/codeql-extractor.yml.
+[2026-04-25 11:27:34] [DETAILS] resolve languages> Parsing /mnt/c/Tools/codeql/go/codeql-extractor.yml.
+[2026-04-25 11:27:34] [DETAILS] resolve languages> Parsing /mnt/c/Tools/codeql/html/codeql-extractor.yml.
+[2026-04-25 11:27:34] [DETAILS] resolve languages> Parsing /mnt/c/Tools/codeql/java/codeql-extractor.yml.
+[2026-04-25 11:27:34] [DETAILS] resolve languages> Parsing /mnt/c/Tools/codeql/javascript/codeql-extractor.yml.
+[2026-04-25 11:27:34] [DETAILS] resolve languages> Parsing /mnt/c/Tools/codeql/properties/codeql-extractor.yml.
+[2026-04-25 11:27:34] [DETAILS] resolve languages> Parsing /mnt/c/Tools/codeql/python/codeql-extractor.yml.
+[2026-04-25 11:27:34] [DETAILS] resolve languages> Parsing /mnt/c/Tools/codeql/ruby/codeql-extractor.yml.
+[2026-04-25 11:27:34] [DETAILS] resolve languages> Parsing /mnt/c/Tools/codeql/rust/codeql-extractor.yml.
+[2026-04-25 11:27:34] [DETAILS] resolve languages> Parsing /mnt/c/Tools/codeql/swift/codeql-extractor.yml.
+[2026-04-25 11:27:34] [DETAILS] resolve languages> Parsing /mnt/c/Tools/codeql/xml/codeql-extractor.yml.
+[2026-04-25 11:27:34] [DETAILS] resolve languages> Parsing /mnt/c/Tools/codeql/yaml/codeql-extractor.yml.
+[2026-04-25 11:27:34] Plumbing command codeql resolve languages completed:
+                      {
+                        "aliases" : {
+                          "c" : "cpp",
+                          "c++" : "cpp",
+                          "c-c++" : "cpp",
+                          "c-cpp" : "cpp",
+                          "c#" : "csharp",
+                          "java-kotlin" : "java",
+                          "kotlin" : "java",
+                          "javascript-typescript" : "javascript",
+                          "typescript" : "javascript"
+                        },
+                        "extractors" : {
+                          "actions" : [
+                            {
+                              "extractor_root" : "/mnt/c/Tools/codeql/actions",
+                              "extractor_options" : { }
+                            }
+                          ],
+                          "cpp" : [
+                            {
+                              "extractor_root" : "/mnt/c/Tools/codeql/cpp",
+                              "extractor_options" : {
+                                "scale_timeouts" : {
+                                  "title" : "Value to scale compiler introspection timeouts with",
+                                  "description" : "The extractor attempts to determine what compiler the source code being extracted is compiled with. To this end the extractor makes additional calls to the compiler, some of which are expected to return within a certain fixed time (either 10s or 15s). On some systems that are under high load this time might be too short, and can be scaled up using this option.\n",
+                                  "type" : "string",
+                                  "pattern" : "[0-9]+"
+                                },
+                                "log_verbosity" : {
+                                  "title" : "Verbosity of the extractor logging",
+                                  "description" : "Set the verbosity of the extractor logging to 'quiet' (0), 'normal' (1), 'chatty' (2), or 'noisy' (3). The default is 'normal'.\n",
+                                  "type" : "string",
+                                  "pattern" : "[0-3]"
+                                }
+                              }
+                            }
+                          ],
+                          "csharp" : [
+                            {
+                              "extractor_root" : "/mnt/c/Tools/codeql/csharp",
+                              "extractor_options" : {
+                                "trap" : {
+                                  "title" : "Options pertaining to TRAP.",
+                                  "description" : "Options pertaining to TRAP.",
+                                  "type" : "object",
+                                  "properties" : {
+                                    "compression" : {
+                                      "title" : "Controls compression for the TRAP files written by the extractor.",
+                                      "description" : "This option is only intended for use in debugging the extractor. Accepted values are 'brotli' (the default, to write brotli-compressed TRAP), 'gzip', and 'none' (to write uncompressed TRAP).\n",
+                                      "type" : "string",
+                                      "pattern" : "^(none|gzip|brotli)$"
+                                    }
+                                  }
+                                },
+                                "buildless" : {
+                                  "title" : "DEPRECATED - Whether to use buildless (standalone) extraction.",
+                                  "description" : "DEPRECATED: Use `--build-mode none` instead.\nA value indicating, which type of extraction the autobuilder should perform. If 'true', then the standalone extractor will be used, otherwise tracing extraction will be performed. The default is 'false'. Note that buildless extraction will generally yield less accurate analysis results, and should only be used in cases where it is not possible to build the code (for example if it uses inaccessible dependencies).\n",
+                                  "type" : "string",
+                                  "pattern" : "^(false|true)$"
+                                },
+                                "logging" : {
+                                  "title" : "Options pertaining to logging.",
+                                  "description" : "Options pertaining to logging.",
+                                  "type" : "object",
+                                  "properties" : {
+                                    "verbosity" : {
+                                      "title" : "Extractor logging verbosity level.",
+                                      "description" : "Controls the level of verbosity of the extractor. The supported levels are (in order of increasing verbosity):\n  - off\n  - errors\n  - warnings\n  - info or progress\n  - debug or progress+\n  - trace or progress++\n  - progress+++\n",
+                                      "type" : "string",
+                                      "pattern" : "^(off|errors|warnings|(info|progress)|(debug|progress\\+)|(trace|progress\\+\\+)|progress\\+\\+\\+)$"
+                                    }
+                                  }
+                                },
+                                "binlog" : {
+                                  "title" : "Binlog",
+                                  "description" : "[EXPERIMENTAL] The value is a path to the MsBuild binary log file that should be extracted. This option only works when `--build-mode none` is also specified.\n",
+                                  "type" : "array"
+                                },
+                                "buildless_dependency_dir" : {
+                                  "title" : "The path where buildless (standalone) extraction should keep dependencies.",
+                                  "description" : "If set, the buildless (standalone) extractor will store dependencies in this directory.\n",
+                                  "type" : "string"
+                                }
+                              }
+                            }
+                          ],
+                          "csv" : [
+                            {
+                              "extractor_root" : "/mnt/c/Tools/codeql/csv"
+                            }
+                          ],
+                          "go" : [
+                            {
+                              "extractor_root" : "/mnt/c/Tools/codeql/go",
+                              "extractor_options" : {
+                                "extract_tests" : {
+                                  "title" : "Whether to include Go test files in the CodeQL database.",
+                                  "description" : "A value indicating whether Go test files should be included in the CodeQL database. The default is 'false'.\n",
+                                  "type" : "string",
+                                  "pattern" : "^(false|true)$"
+                                },
+                                "extract_vendor_dirs" : {
+                                  "title" : "Whether to include Go vendor directories in the CodeQL database.",
+                                  "description" : "A value indicating whether Go vendor directories should be included in the CodeQL database. The default is 'false'.\n",
+                                  "type" : "string",
+                                  "pattern" : "^(false|true)$"
+                                }
+                              }
+                            }
+                          ],
+                          "html" : [
+                            {
+                              "extractor_root" : "/mnt/c/Tools/codeql/html"
+                            }
+                          ],
+                          "java" : [
+                            {
+                              "extractor_root" : "/mnt/c/Tools/codeql/java",
+                              "extractor_options" : {
+                                "exclude" : {
+                                  "title" : "A glob excluding files from analysis.",
+                                  "description" : "A glob indicating what files to exclude from the analysis. This accepts glob patterns that are supported by Java's 'getPathMatcher' implementation.\n",
+                                  "type" : "string"
+                                },
+                                "add_prefer_source" : {
+                                  "title" : "Whether to always prefer source files over class files.",
+                                  "description" : "A value indicating whether source files should be preferred over class files. If set to 'true', the extraction adds '-Xprefer:source' to the javac command line. If set to 'false', the extraction uses the default javac behavior ('-Xprefer:newer'). The default is 'true'.\n",
+                                  "type" : "string",
+                                  "pattern" : "^(false|true)$"
+                                },
+                                "buildless" : {
+                                  "title" : "Whether to use buildless (standalone) extraction (experimental).",
+                                  "description" : "A value indicating, which type of extraction the autobuilder should perform. If 'true', then the standalone extractor will be used, otherwise tracing extraction will be performed. The default is 'false'. Note that buildless extraction will generally yield less accurate analysis results, and should only be used in cases where it is not possible to build the code (for example if it uses inaccessible dependencies).\n",
+                                  "type" : "string",
+                                  "pattern" : "^(false|true)$"
+                                },
+                                "buildless_dependency_dir" : {
+                                  "title" : "The path where buildless (standalone) extraction should keep dependencies.",
+                                  "description" : "If set, the buildless (standalone) extractor will store dependencies in this directory.\n",
+                                  "type" : "string"
+                                },
+                                "minimize_dependency_jars" : {
+                                  "title" : "Whether to rewrite and minimize downloaded JAR dependencies (experimental).",
+                                  "description" : "If 'true', JAR dependencies downloaded during extraction will be rewritten to remove unneeded data, such as method bodies. The default is 'false'.\n",
+                                  "type" : "string",
+                                  "pattern" : "^(false|true)$"
+                                }
+                              }
+                            }
+                          ],
+                          "javascript" : [
+                            {
+                              "extractor_root" : "/mnt/c/Tools/codeql/javascript",
+                              "extractor_options" : {
+                                "skip_types" : {
+                                  "title" : "Skip type extraction for TypeScript",
+                                  "description" : "Whether to skip the extraction of types in a TypeScript application",
+                                  "type" : "string",
+                                  "pattern" : "^(false|true)$"
+                                }
+                              }
+                            }
+                          ],
+                          "properties" : [
+                            {
+                              "extractor_root" : "/mnt/c/Tools/codeql/properties"
+                            }
+                          ],
+                          "python" : [
+                            {
+                              "extractor_root" : "/mnt/c/Tools/codeql/python",
+                              "extractor_options" : {
+                                "logging" : {
+                                  "title" : "Options pertaining to logging.",
+                                  "description" : "Options pertaining to logging.",
+                                  "type" : "object",
+                                  "properties" : {
+                                    "verbosity" : {
+                                      "title" : "Python extractor logging verbosity level.",
+                                      "description" : "Controls the level of verbosity of the CodeQL Python extractor.\nThe supported levels are (in order of increasing verbosity):\n\n  - off\n  - errors\n  - warnings\n  - info or progress\n  - debug or progress+\n  - trace or progress++\n  - progress+++\n",
+                                      "type" : "string",
+                                      "pattern" : "^(off|errors|warnings|(info|progress)|(debug|progress\\+)|(trace|progress\\+\\+)|progress\\+\\+\\+)$"
+                                    }
+                                  }
+                                },
+                                "python_executable_name" : {
+                                  "title" : "Controls the name of the Python executable used by the Python extractor.",
+                                  "description" : "The Python extractor uses platform-dependent heuristics to determine the name of the Python executable to use. Specifying a value for this option overrides the name of the Python executable used by the extractor. Accepted values are py, python and python3. Use this setting with caution, the Python extractor requires Python 3 to run.\n",
+                                  "type" : "string",
+                                  "pattern" : "^(py|python|python3)$"
+                                }
+                              }
+                            }
+                          ],
+                          "ruby" : [
+                            {
+                              "extractor_root" : "/mnt/c/Tools/codeql/ruby",
+                              "extractor_options" : {
+                                "trap" : {
+                                  "title" : "Options pertaining to TRAP.",
+                                  "description" : "Options pertaining to TRAP.",
+                                  "type" : "object",
+                                  "properties" : {
+                                    "compression" : {
+                                      "title" : "Controls compression for the TRAP files written by the extractor.",
+                                      "description" : "This option is only intended for use in debugging the extractor. Accepted values are 'gzip' (the default, to write gzip-compressed TRAP) 'zstd' (to write Zstandard-compressed TRAP) and 'none' (to write uncompressed TRAP).\n",
+                                      "type" : "string",
+                                      "pattern" : "^(none|gzip|zstd)$"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          ],
+                          "rust" : [
+                            {
+                              "extractor_root" : "/mnt/c/Tools/codeql/rust",
+                              "extractor_options" : {
+                                "trap" : {
+                                  "title" : "Options pertaining to TRAP.",
+                                  "description" : "Options pertaining to TRAP.",
+                                  "type" : "object",
+                                  "properties" : {
+                                    "compression" : {
+                                      "title" : "Controls compression for the TRAP files written by the extractor.",
+                                      "description" : "This option is only intended for use in debugging the extractor. Accepted values are 'gzip' (to write gzip-compressed TRAP) 'zstd' (to write Zstandard-compressed TRAP) and 'none' (the default, to write uncompressed TRAP).\n",
+                                      "type" : "string",
+                                      "pattern" : "^(none|gzip|zstd)$"
+                                    }
+                                  }
+                                },
+                                "cargo_target_dir" : {
+                                  "title" : "Directory to use for cargo output files.",
+                                  "description" : "This value is an optional path to use as `CARGO_TARGET_DIR` for the internal cargo commands the extractor uses. Pointing it to a persistent directory may reduce execution time of consecutive extractor runs. By default, a new scratch directory is used for each run.\n",
+                                  "type" : "string"
+                                },
+                                "cargo_target" : {
+                                  "title" : "Target architecture",
+                                  "description" : "Target architecture to use for analysis, analogous to `cargo --target`. By default the host architecture is used.\n",
+                                  "type" : "string"
+                                },
+                                "cargo_features" : {
+                                  "title" : "Cargo features to turn on",
+                                  "description" : "Comma-separated list of features to turn on. By default all features are enabled. If any features are specified, then only those features are enabled. The `default` feature must be explicitly specified if only default features are desired. Can be repeated.\n",
+                                  "type" : "array"
+                                },
+                                "cargo_cfg_overrides" : {
+                                  "title" : "Cargo cfg overrides",
+                                  "description" : "Comma-separated list of cfg settings to enable, or disable if prefixed with `-`. Can be repeated.\n",
+                                  "type" : "array"
+                                },
+                                "logging" : {
+                                  "title" : "Options pertaining to logging.",
+                                  "description" : "Options pertaining to logging.",
+                                  "type" : "object",
+                                  "properties" : {
+                                    "verbosity" : {
+                                      "title" : "Extractor logging verbosity level.",
+                                      "description" : "Controls the level of verbosity of the extractor. The supported levels are (in order of increasing verbosity):\n  - off\n  - errors\n  - warnings\n  - info or progress\n  - debug or progress+\n  - trace or progress++\n  - progress+++\n",
+                                      "type" : "string",
+                                      "pattern" : "^(off|errors|warnings|(info|progress)|(debug|progress\\+)|(trace|progress\\+\\+)|progress\\+\\+\\+)$"
+                                    },
+                                    "flamegraph" : {
+                                      "title" : "[Experimental] File path for write flame graph log",
+                                      "description" : "Collect flame graph data using the `tracing-flame` crate. To render a flame graph or chart, run the `inferno-flamegraph` command. See also: https://crates.io/crates/tracing-flame\n",
+                                      "type" : "string"
+                                    }
+                                  }
+                                },
+                                "extract_dependencies_as_source" : {
+                                  "title" : "Extract dependencies as source code",
+                                  "description" : "Extract the full source code of dependencies instead of only extracting signatures.\n",
+                                  "type" : "string",
+                                  "pattern" : "^(false|true)$"
+                                }
+                              }
+                            }
+                          ],
+                          "swift" : [
+                            {
+                              "extractor_root" : "/mnt/c/Tools/codeql/swift"
+                            }
+                          ],
+                          "xml" : [
+                            {
+                              "extractor_root" : "/mnt/c/Tools/codeql/xml"
+                            }
+                          ],
+                          "yaml" : [
+                            {
+                              "extractor_root" : "/mnt/c/Tools/codeql/yaml"
+                            }
+                          ]
+                        }
+                      }
+[2026-04-25 11:27:34] [PROGRESS] database init> Calculating baseline information in /home/test/my-awesome-project/CISB/server/datarace
+[2026-04-25 11:27:34] [SPAMMY] database init> Ignoring the following directories when processing baseline information: .git, .hg, .svn.
+[2026-04-25 11:27:34] [DETAILS] database init> Running command in /home/test/my-awesome-project/CISB/server/datarace: /mnt/c/Tools/codeql/tools/linux64/scc --by-file --exclude-dir .git,.hg,.svn --format json --no-large --no-min .
+[2026-04-25 11:27:35] Using configure-baseline script /mnt/c/Tools/codeql/actions/tools/configure-baseline.sh.
+[2026-04-25 11:27:35] [PROGRESS] database init> Running command in /home/test/my-awesome-project/CISB/server/datarace: [/mnt/c/Tools/codeql/actions/tools/configure-baseline.sh]
+[2026-04-25 11:27:35] [SPAMMY] database init> Ignored an additional 2 files when processing baseline information for YAML due to paths and paths-ignore configuration.
+[2026-04-25 11:27:35] [SPAMMY] database init> Found 0 baseline files for actions.
+[2026-04-25 11:27:35] [SPAMMY] database init> Found 1 baseline files for cpp.
+[2026-04-25 11:27:35] [PROGRESS] database init> Calculated baseline information for languages: actions, cpp (125ms).
+[2026-04-25 11:27:35] [PROGRESS] database init> Resolving extractor cpp.
+[2026-04-25 11:27:35] [DETAILS] database init> Found candidate extractor root for cpp: /mnt/c/Tools/codeql/cpp.
+[2026-04-25 11:27:35] [PROGRESS] database init> Successfully loaded extractor C/C++ (cpp) from /mnt/c/Tools/codeql/cpp.
+[2026-04-25 11:27:35] [PROGRESS] database init> Created skeleton CodeQL database at /home/test/my-awesome-project/CISB/server/datarace/db-l4. This in-progress database is ready to be populated by an extractor.
+[2026-04-25 11:27:35] Plumbing command codeql database init completed.
+[2026-04-25 11:27:35] [PROGRESS] database create> Running build command: [make]
+[2026-04-25 11:27:35] Running plumbing command: codeql database trace-command --working-dir=/home/test/my-awesome-project/CISB/server/datarace --index-traceless-dbs --no-db-cluster -- /home/test/my-awesome-project/CISB/server/datarace/db-l4 make
+[2026-04-25 11:27:35] [PROGRESS] database trace-command> Running command in /home/test/my-awesome-project/CISB/server/datarace: [make]
+[2026-04-25 11:27:35] [build-stdout] gcc -c -o test1.o test1.c
+[2026-04-25 11:27:36] Plumbing command codeql database trace-command completed.
+[2026-04-25 11:27:36] [PROGRESS] database create> Finalizing database at /home/test/my-awesome-project/CISB/server/datarace/db-l4.
+[2026-04-25 11:27:36] Running plumbing command: codeql database finalize --no-db-cluster -- /home/test/my-awesome-project/CISB/server/datarace/db-l4
+[2026-04-25 11:27:36] Using pre-finalize script /mnt/c/Tools/codeql/cpp/tools/pre-finalize.sh.
+[2026-04-25 11:27:36] [PROGRESS] database finalize> Running pre-finalize script /mnt/c/Tools/codeql/cpp/tools/pre-finalize.sh in /home/test/my-awesome-project/CISB/server/datarace.
+[2026-04-25 11:27:36] Running plumbing command: codeql database trace-command --working-dir=/home/test/my-awesome-project/CISB/server/datarace --no-tracing -- /home/test/my-awesome-project/CISB/server/datarace/db-l4 /mnt/c/Tools/codeql/cpp/tools/pre-finalize.sh
+[2026-04-25 11:27:36] [PROGRESS] database trace-command> Running command in /home/test/my-awesome-project/CISB/server/datarace: [/mnt/c/Tools/codeql/cpp/tools/pre-finalize.sh]
+[2026-04-25 11:27:36] Plumbing command codeql database trace-command completed.
+[2026-04-25 11:27:36] [PROGRESS] database finalize> Pre-finalize script /mnt/c/Tools/codeql/cpp/tools/pre-finalize.sh completed in 67 ms.
+[2026-04-25 11:27:36] [PROGRESS] database finalize> Running TRAP import for CodeQL database at /home/test/my-awesome-project/CISB/server/datarace/db-l4...
+[2026-04-25 11:27:36] Running plumbing command: codeql dataset import --dbscheme=/mnt/c/Tools/codeql/cpp/semmlecode.cpp.dbscheme -- /home/test/my-awesome-project/CISB/server/datarace/db-l4/db-cpp /home/test/my-awesome-project/CISB/server/datarace/db-l4/trap/cpp
+[2026-04-25 11:27:36] Clearing disk cache since the version file /home/test/my-awesome-project/CISB/server/datarace/db-l4/db-cpp/default/cache/version does not exist
+[2026-04-25 11:27:36] Tuple pool not found. Clearing relations with cached strings
+[2026-04-25 11:27:36] Trimming disk cache at /home/test/my-awesome-project/CISB/server/datarace/db-l4/db-cpp/default/cache in mode clear.
+[2026-04-25 11:27:36] Sequence stamp origin is -5921352626560924252
+[2026-04-25 11:27:36] Pausing evaluation to hard-clear memory at sequence stamp o+0
+[2026-04-25 11:27:36] Unpausing evaluation
+[2026-04-25 11:27:36] Pausing evaluation to quickly trim disk at sequence stamp o+1
+[2026-04-25 11:27:36] Unpausing evaluation
+[2026-04-25 11:27:36] Pausing evaluation to zealously trim disk at sequence stamp o+2
+[2026-04-25 11:27:36] Unpausing evaluation
+[2026-04-25 11:27:36] Trimming completed (11ms): Purged everything.
+[2026-04-25 11:27:36] Scanning for files in /home/test/my-awesome-project/CISB/server/datarace/db-l4/trap/cpp
+[2026-04-25 11:27:36] Found 3 files on disk containing 73 TRAP files (451.18 KiB)
+[2026-04-25 11:27:36] [PROGRESS] dataset import> Importing TRAP files
+[2026-04-25 11:27:37] Importing cpp_predefined.acb19af8.trap (test1.c.5431636e_0.trap.tar.zst) (1 of 73)
+[2026-04-25 11:27:37] Importing wordsize.h.92468457.trap (test1.c.5431636e_0.trap.tar.zst) (2 of 73)
+[2026-04-25 11:27:37] Importing timesize.h.00d5e597.trap (test1.c.5431636e_0.trap.tar.zst) (3 of 73)
+[2026-04-25 11:27:37] Importing features-time64.h.736f5777.trap (test1.c.5431636e_0.trap.tar.zst) (4 of 73)
+[2026-04-25 11:27:37] Importing stdc-predef.h.c6e479d9.trap (test1.c.5431636e_0.trap.tar.zst) (5 of 73)
+[2026-04-25 11:27:37] Importing long-double.h.50566853.trap (test1.c.5431636e_0.trap.tar.zst) (6 of 73)
+[2026-04-25 11:27:37] Importing cdefs.h.9fdbc117.trap (test1.c.5431636e_0.trap.tar.zst) (7 of 73)
+[2026-04-25 11:27:37] Importing stubs-64.h.c6e479d9.trap (test1.c.5431636e_0.trap.tar.zst) (8 of 73)
+[2026-04-25 11:27:37] Importing stubs.h.5a6a849c.trap (test1.c.5431636e_0.trap.tar.zst) (9 of 73)
+[2026-04-25 11:27:37] Importing features.h.7131d4ef.trap (test1.c.5431636e_0.trap.tar.zst) (10 of 73)
+[2026-04-25 11:27:37] Importing typesizes.h.f8f8da78.trap (test1.c.5431636e_0.trap.tar.zst) (11 of 73)
+[2026-04-25 11:27:37] Importing time64.h.18e096c5.trap (test1.c.5431636e_0.trap.tar.zst) (12 of 73)
+[2026-04-25 11:27:37] Importing types.h.68520355.trap (test1.c.5431636e_0.trap.tar.zst) (13 of 73)
+[2026-04-25 11:27:37] Importing stddef.h.53709c7e.trap (test1.c.5431636e_0.trap.tar.zst) (14 of 73)
+[2026-04-25 11:27:37] Importing time_t.h.6396c2b8.trap (test1.c.5431636e_0.trap.tar.zst) (15 of 73)
+[2026-04-25 11:27:37] Importing endianness.h.1999a564.trap (test1.c.5431636e_0.trap.tar.zst) (16 of 73)
+[2026-04-25 11:27:37] Importing endian.h.a1618c87.trap (test1.c.5431636e_0.trap.tar.zst) (17 of 73)
+[2026-04-25 11:27:37] Importing struct_timespec.h.79e126db.trap (test1.c.5431636e_0.trap.tar.zst) (18 of 73)
+[2026-04-25 11:27:37] Importing struct_sched_param.h.ddf42d8e.trap (test1.c.5431636e_0.trap.tar.zst) (19 of 73)
+[2026-04-25 11:27:37] Importing sched.h.828b4572.trap (test1.c.5431636e_0.trap.tar.zst) (20 of 73)
+[2026-04-25 11:27:37] Importing cpu-set.h.83628b06.trap (test1.c.5431636e_0.trap.tar.zst) (21 of 73)
+[2026-04-25 11:27:37] Importing sched.h.5741b274.trap (test1.c.5431636e_0.trap.tar.zst) (22 of 73)
+[2026-04-25 11:27:37] Importing stddef.h.b66de4b9.trap (test1.c.5431636e_0.trap.tar.zst) (23 of 73)
+[2026-04-25 11:27:37] Importing time.h.1cfe66ca.trap (test1.c.5431636e_0.trap.tar.zst) (24 of 73)
+[2026-04-25 11:27:37] Importing clock_t.h.61e99454.trap (test1.c.5431636e_0.trap.tar.zst) (25 of 73)
+[2026-04-25 11:27:37] Importing struct_tm.h.faf0445b.trap (test1.c.5431636e_0.trap.tar.zst) (26 of 73)
+[2026-04-25 11:27:37] Importing clockid_t.h.6ad7214c.trap (test1.c.5431636e_0.trap.tar.zst) (27 of 73)
+[2026-04-25 11:27:37] Importing timer_t.h.47964e39.trap (test1.c.5431636e_0.trap.tar.zst) (28 of 73)
+[2026-04-25 11:27:37] Importing struct_itimerspec.h.f9ae6d74.trap (test1.c.5431636e_0.trap.tar.zst) (29 of 73)
+[2026-04-25 11:27:37] Importing __locale_t.h.458cb9a8.trap (test1.c.5431636e_0.trap.tar.zst) (30 of 73)
+[2026-04-25 11:27:37] Importing locale_t.h.f5a98c5d.trap (test1.c.5431636e_0.trap.tar.zst) (31 of 73)
+[2026-04-25 11:27:37] Importing time.h.715f3f0b.trap (test1.c.5431636e_0.trap.tar.zst) (32 of 73)
+[2026-04-25 11:27:37] Importing pthreadtypes-arch.h.cfce5b81.trap (test1.c.5431636e_0.trap.tar.zst) (33 of 73)
+[2026-04-25 11:27:37] Importing atomic_wide_counter.h.c54fc7c0.trap (test1.c.5431636e_0.trap.tar.zst) (34 of 73)
+[2026-04-25 11:27:37] Importing struct_mutex.h.dba14d39.trap (test1.c.5431636e_0.trap.tar.zst) (35 of 73)
+[2026-04-25 11:27:37] Importing struct_rwlock.h.cac24554.trap (test1.c.5431636e_0.trap.tar.zst) (36 of 73)
+[2026-04-25 11:27:37] Importing thread-shared-types.h.f896aff7.trap (test1.c.5431636e_0.trap.tar.zst) (37 of 73)
+[2026-04-25 11:27:37] Importing pthreadtypes.h.2834aecb.trap (test1.c.5431636e_0.trap.tar.zst) (38 of 73)
+[2026-04-25 11:27:37] Importing setjmp.h.02a851eb.trap (test1.c.5431636e_0.trap.tar.zst) (39 of 73)
+[2026-04-25 11:27:37] Importing __sigset_t.h.802c2c21.trap (test1.c.5431636e_0.trap.tar.zst) (40 of 73)
+[2026-04-25 11:27:37] Importing struct___jmp_buf_tag.h.54d58330.trap (test1.c.5431636e_0.trap.tar.zst) (41 of 73)
+[2026-04-25 11:27:37] Importing pthread.h.e4808276.trap (test1.c.5431636e_0.trap.tar.zst) (42 of 73)
+[2026-04-25 11:27:37] Importing libc-header-start.h.7d2d11a9.trap (test1.c.5431636e_0.trap.tar.zst) (43 of 73)
+[2026-04-25 11:27:37] Importing wchar.h.d4c50b23.trap (test1.c.5431636e_0.trap.tar.zst) (44 of 73)
+[2026-04-25 11:27:37] Importing stdint-intn.h.93b3e97e.trap (test1.c.5431636e_0.trap.tar.zst) (45 of 73)
+[2026-04-25 11:27:37] Importing stdint-uintn.h.dfbf7d61.trap (test1.c.5431636e_0.trap.tar.zst) (46 of 73)
+[2026-04-25 11:27:37] Importing stdint-least.h.f5399d27.trap (test1.c.5431636e_0.trap.tar.zst) (47 of 73)
+[2026-04-25 11:27:37] Importing stdint.h.f9a7a0f4.trap (test1.c.5431636e_0.trap.tar.zst) (48 of 73)
+[2026-04-25 11:27:37] Importing stdint.h.a5b4daf4.trap (test1.c.5431636e_0.trap.tar.zst) (49 of 73)
+[2026-04-25 11:27:37] Importing libc-header-start.h.47a86c38.trap (test1.c.5431636e_0.trap.tar.zst) (50 of 73)
+[2026-04-25 11:27:37] Importing stddef.h.62e161ba.trap (test1.c.5431636e_0.trap.tar.zst) (51 of 73)
+[2026-04-25 11:27:37] Importing stdarg.h.49828e20.trap (test1.c.5431636e_0.trap.tar.zst) (52 of 73)
+[2026-04-25 11:27:37] Importing __mbstate_t.h.2c5b3ab1.trap (test1.c.5431636e_0.trap.tar.zst) (53 of 73)
+[2026-04-25 11:27:37] Importing __fpos_t.h.ec74182e.trap (test1.c.5431636e_0.trap.tar.zst) (54 of 73)
+[2026-04-25 11:27:37] Importing __fpos64_t.h.f21a2833.trap (test1.c.5431636e_0.trap.tar.zst) (55 of 73)
+[2026-04-25 11:27:37] Importing __FILE.h.b62565c1.trap (test1.c.5431636e_0.trap.tar.zst) (56 of 73)
+[2026-04-25 11:27:37] Importing FILE.h.07e87bfb.trap (test1.c.5431636e_0.trap.tar.zst) (57 of 73)
+[2026-04-25 11:27:37] Importing struct_FILE.h.842638a9.trap (test1.c.5431636e_0.trap.tar.zst) (58 of 73)
+[2026-04-25 11:27:37] Importing stdio_lim.h.05b7f7f1.trap (test1.c.5431636e_0.trap.tar.zst) (59 of 73)
+[2026-04-25 11:27:37] Importing floatn-common.h.9fc579a0.trap (test1.c.5431636e_0.trap.tar.zst) (60 of 73)
+[2026-04-25 11:27:37] Importing floatn.h.f449be45.trap (test1.c.5431636e_0.trap.tar.zst) (61 of 73)
+[2026-04-25 11:27:37] Importing stdio.h.24225880.trap (test1.c.5431636e_0.trap.tar.zst) (62 of 73)
+[2026-04-25 11:27:37] Importing libc-header-start.h.ce7c3e95.trap (test1.c.5431636e_0.trap.tar.zst) (63 of 73)
+[2026-04-25 11:27:37] Importing stddef.h.96662d69.trap (test1.c.5431636e_0.trap.tar.zst) (64 of 73)
+[2026-04-25 11:27:37] Importing waitflags.h.1ed736a4.trap (test1.c.5431636e_0.trap.tar.zst) (65 of 73)
+[2026-04-25 11:27:37] Importing waitstatus.h.9b882f51.trap (test1.c.5431636e_0.trap.tar.zst) (66 of 73)
+[2026-04-25 11:27:37] Importing stddef.h.3eaa8a8d.trap (test1.c.5431636e_0.trap.tar.zst) (67 of 73)
+[2026-04-25 11:27:37] Importing types.h.05d28f73.trap (test1.c.5431636e_0.trap.tar.zst) (68 of 73)
+[2026-04-25 11:27:37] Importing stdlib-float.h.65c690d8.trap (test1.c.5431636e_0.trap.tar.zst) (69 of 73)
+[2026-04-25 11:27:37] Importing stdlib.h.3ea116ab.trap (test1.c.5431636e_0.trap.tar.zst) (70 of 73)
+[2026-04-25 11:27:37] Importing test1.c.5431636e.trap (test1.c.5431636e_0.trap.tar.zst) (71 of 73)
+[2026-04-25 11:27:37] Importing 37727399_0.trap.zst (72 of 73)
+[2026-04-25 11:27:37] Importing metadata.trap.gz (73 of 73)
+[2026-04-25 11:27:37] [PROGRESS] dataset import> Merging relations
+[2026-04-25 11:27:37] Merging 1 fragment for 'builtintypes'.
+[2026-04-25 11:27:37] Merged 382 bytes for 'builtintypes'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'unspecifiedtype'.
+[2026-04-25 11:27:37] Merged 1155 bytes (1.13 KiB) for 'unspecifiedtype'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'files'.
+[2026-04-25 11:27:37] Merged 189 bytes for 'files'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'locations_default'.
+[2026-04-25 11:27:37] Merged 34486 bytes (33.68 KiB) for 'locations_default'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'link_targets'.
+[2026-04-25 11:27:37] Merged 26 bytes for 'link_targets'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'usertypes'.
+[2026-04-25 11:27:37] Merged 636 bytes for 'usertypes'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'link_parent'.
+[2026-04-25 11:27:37] Merged 389 bytes for 'link_parent'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'usertypesize'.
+[2026-04-25 11:27:37] Merged 189 bytes for 'usertypesize'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'is_pod_class'.
+[2026-04-25 11:27:37] Merged 69 bytes for 'is_pod_class'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'is_standard_layout_class'.
+[2026-04-25 11:27:37] Merged 69 bytes for 'is_standard_layout_class'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'is_complete'.
+[2026-04-25 11:27:37] Merged 69 bytes for 'is_complete'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'membervariables'.
+[2026-04-25 11:27:37] Merged 612 bytes for 'membervariables'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'fieldoffsets'.
+[2026-04-25 11:27:37] Merged 339 bytes for 'fieldoffsets'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'var_decls'.
+[2026-04-25 11:27:37] Merged 4287 bytes (4.19 KiB) for 'var_decls'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'var_def'.
+[2026-04-25 11:27:37] Merged 196 bytes for 'var_def'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'derivedtypes'.
+[2026-04-25 11:27:37] Merged 925 bytes for 'derivedtypes'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'pointerishsize'.
+[2026-04-25 11:27:37] Merged 144 bytes for 'pointerishsize'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'member'.
+[2026-04-25 11:27:37] Merged 480 bytes for 'member'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'namespaces'.
+[2026-04-25 11:27:37] Merged 26 bytes for 'namespaces'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'specialnamequalifyingelements'.
+[2026-04-25 11:27:37] Merged 27 bytes for 'specialnamequalifyingelements'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'mangled_name'.
+[2026-04-25 11:27:37] Merged 1045 bytes (1.02 KiB) for 'mangled_name'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'specifiers'.
+[2026-04-25 11:27:37] Merged 149 bytes for 'specifiers'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'numlines'.
+[2026-04-25 11:27:37] Merged 408 bytes for 'numlines'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'preprocdirects'.
+[2026-04-25 11:27:37] Merged 7437 bytes (7.26 KiB) for 'preprocdirects'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'preproctext'.
+[2026-04-25 11:27:37] Merged 5060 bytes (4.94 KiB) for 'preproctext'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'preproctrue'.
+[2026-04-25 11:27:37] Merged 410 bytes for 'preproctrue'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'macroinvocations'.
+[2026-04-25 11:27:37] Merged 7900 bytes (7.71 KiB) for 'macroinvocations'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'comments'.
+[2026-04-25 11:27:37] Merged 3622 bytes (3.54 KiB) for 'comments'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'commentbinding'.
+[2026-04-25 11:27:37] Merged 2306 bytes (2.25 KiB) for 'commentbinding'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'containerparent'.
+[2026-04-25 11:27:37] Merged 203 bytes for 'containerparent'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'folders'.
+[2026-04-25 11:27:37] Merged 70 bytes for 'folders'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'preprocpair'.
+[2026-04-25 11:27:37] Merged 2365 bytes (2.31 KiB) for 'preprocpair'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'includes'.
+[2026-04-25 11:27:37] Merged 379 bytes for 'includes'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'preprocfalse'.
+[2026-04-25 11:27:37] Merged 292 bytes for 'preprocfalse'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'macro_argument_unexpanded'.
+[2026-04-25 11:27:37] Merged 1991 bytes (1.94 KiB) for 'macro_argument_unexpanded'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'macro_argument_expanded'.
+[2026-04-25 11:27:37] Merged 1984 bytes (1.94 KiB) for 'macro_argument_expanded'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'macroparent'.
+[2026-04-25 11:27:37] Merged 1709 bytes (1.67 KiB) for 'macroparent'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'type_mentions'.
+[2026-04-25 11:27:37] Merged 1478 bytes (1.44 KiB) for 'type_mentions'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'usertype_alias_kind'.
+[2026-04-25 11:27:37] Merged 203 bytes for 'usertype_alias_kind'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'typedefbase'.
+[2026-04-25 11:27:37] Merged 407 bytes for 'typedefbase'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'type_decls'.
+[2026-04-25 11:27:37] Merged 757 bytes for 'type_decls'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'type_decl_top'.
+[2026-04-25 11:27:37] Merged 225 bytes for 'type_decl_top'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'type_def'.
+[2026-04-25 11:27:37] Merged 77 bytes for 'type_def'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'arraysizes'.
+[2026-04-25 11:27:37] Merged 147 bytes for 'arraysizes'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'values'.
+[2026-04-25 11:27:37] Merged 892 bytes for 'values'.
+[2026-04-25 11:27:37] Merging 1 fragment for 'exprs'.
+[2026-04-25 11:27:38] Merged 1696 bytes (1.66 KiB) for 'exprs'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'expr_types'.
+[2026-04-25 11:27:38] Merged 1343 bytes (1.31 KiB) for 'expr_types'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'valuebind'.
+[2026-04-25 11:27:38] Merged 798 bytes for 'valuebind'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'inmacroexpansion'.
+[2026-04-25 11:27:38] Merged 651 bytes for 'inmacroexpansion'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'macrolocationbind'.
+[2026-04-25 11:27:38] Merged 556 bytes for 'macrolocationbind'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'varspecifiers'.
+[2026-04-25 11:27:38] Merged 440 bytes for 'varspecifiers'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'functions'.
+[2026-04-25 11:27:38] Merged 631 bytes for 'functions'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'function_return_type'.
+[2026-04-25 11:27:38] Merged 551 bytes for 'function_return_type'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'function_prototyped'.
+[2026-04-25 11:27:38] Merged 311 bytes for 'function_prototyped'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'params'.
+[2026-04-25 11:27:38] Merged 2471 bytes (2.41 KiB) for 'params'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'valuetext'.
+[2026-04-25 11:27:38] Merged 292 bytes for 'valuetext'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'compgenerated'.
+[2026-04-25 11:27:38] Merged 47 bytes for 'compgenerated'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'sizeof_bind'.
+[2026-04-25 11:27:38] Merged 43 bytes for 'sizeof_bind'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'affectedbymacroexpansion'.
+[2026-04-25 11:27:38] Merged 82 bytes for 'affectedbymacroexpansion'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'exprconv'.
+[2026-04-25 11:27:38] Merged 140 bytes for 'exprconv'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'conversionkinds'.
+[2026-04-25 11:27:38] Merged 68 bytes for 'conversionkinds'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'exprparents'.
+[2026-04-25 11:27:38] Merged 855 bytes for 'exprparents'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'fun_decls'.
+[2026-04-25 11:27:38] Merged 1494 bytes (1.46 KiB) for 'fun_decls'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'fun_decl_specifiers'.
+[2026-04-25 11:27:38] Merged 1556 bytes (1.52 KiB) for 'fun_decl_specifiers'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'param_decl_bind'.
+[2026-04-25 11:27:38] Merged 1631 bytes (1.59 KiB) for 'param_decl_bind'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'funspecifiers'.
+[2026-04-25 11:27:38] Merged 364 bytes for 'funspecifiers'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'typespecifiers'.
+[2026-04-25 11:27:38] Merged 165 bytes for 'typespecifiers'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'attributes'.
+[2026-04-25 11:27:38] Merged 2634 bytes (2.57 KiB) for 'attributes'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'funcattributes'.
+[2026-04-25 11:27:38] Merged 1389 bytes (1.36 KiB) for 'funcattributes'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'globalvariables'.
+[2026-04-25 11:27:38] Merged 70 bytes for 'globalvariables'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'var_decl_specifiers'.
+[2026-04-25 11:27:38] Merged 40 bytes for 'var_decl_specifiers'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'attribute_arg_constant'.
+[2026-04-25 11:27:38] Merged 503 bytes for 'attribute_arg_constant'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'attribute_args'.
+[2026-04-25 11:27:38] Merged 1241 bytes (1.21 KiB) for 'attribute_args'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'expr_ancestor'.
+[2026-04-25 11:27:38] Merged 33 bytes for 'expr_ancestor'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'routinetypes'.
+[2026-04-25 11:27:38] Merged 51 bytes for 'routinetypes'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'routinetypeargs'.
+[2026-04-25 11:27:38] Merged 107 bytes for 'routinetypeargs'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'enumconstants'.
+[2026-04-25 11:27:38] Merged 218 bytes for 'enumconstants'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'initialisers'.
+[2026-04-25 11:27:38] Merged 208 bytes for 'initialisers'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'varbind'.
+[2026-04-25 11:27:38] Merged 512 bytes for 'varbind'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'typeattributes'.
+[2026-04-25 11:27:38] Merged 32 bytes for 'typeattributes'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'attribute_arg_value'.
+[2026-04-25 11:27:38] Merged 118 bytes for 'attribute_arg_value'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'funbind'.
+[2026-04-25 11:27:38] Merged 94 bytes for 'funbind'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'attribute_arg_expr'.
+[2026-04-25 11:27:38] Merged 48 bytes for 'attribute_arg_expr'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'builtin_functions'.
+[2026-04-25 11:27:38] Merged 20 bytes for 'builtin_functions'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'extractor_version'.
+[2026-04-25 11:27:38] Merged 28 bytes for 'extractor_version'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'fileannotations'.
+[2026-04-25 11:27:38] Merged 243 bytes for 'fileannotations'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'fun_def'.
+[2026-04-25 11:27:38] Merged 22 bytes for 'fun_def'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'stmts'.
+[2026-04-25 11:27:38] Merged 254 bytes for 'stmts'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'localvariables'.
+[2026-04-25 11:27:38] Merged 95 bytes for 'localvariables'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'stmt_decl_bind'.
+[2026-04-25 11:27:38] Merged 80 bytes for 'stmt_decl_bind'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'stmt_decl_entry_bind'.
+[2026-04-25 11:27:38] Merged 80 bytes for 'stmt_decl_entry_bind'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'aggregate_field_init'.
+[2026-04-25 11:27:38] Merged 84 bytes for 'aggregate_field_init'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'braced_initialisers'.
+[2026-04-25 11:27:38] Merged 22 bytes for 'braced_initialisers'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'expr_isload'.
+[2026-04-25 11:27:38] Merged 93 bytes for 'expr_isload'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'stmtparents'.
+[2026-04-25 11:27:38] Merged 241 bytes for 'stmtparents'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'if_then'.
+[2026-04-25 11:27:38] Merged 48 bytes for 'if_then'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'blockscope'.
+[2026-04-25 11:27:38] Merged 85 bytes for 'blockscope'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'function_entry_point'.
+[2026-04-25 11:27:38] Merged 39 bytes for 'function_entry_point'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'for_condition'.
+[2026-04-25 11:27:38] Merged 39 bytes for 'for_condition'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'for_body'.
+[2026-04-25 11:27:38] Merged 38 bytes for 'for_body'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'for_initialization'.
+[2026-04-25 11:27:38] Merged 38 bytes for 'for_initialization'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'for_update'.
+[2026-04-25 11:27:38] Merged 38 bytes for 'for_update'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'decltypes'.
+[2026-04-25 11:27:38] Merged 60 bytes for 'decltypes'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'jumpinfo'.
+[2026-04-25 11:27:38] Merged 53 bytes for 'jumpinfo'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'iscall'.
+[2026-04-25 11:27:38] Merged 43 bytes for 'iscall'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'expr_cond_guard'.
+[2026-04-25 11:27:38] Merged 33 bytes for 'expr_cond_guard'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'expr_cond_true'.
+[2026-04-25 11:27:38] Merged 33 bytes for 'expr_cond_true'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'expr_cond_false'.
+[2026-04-25 11:27:38] Merged 33 bytes for 'expr_cond_false'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'compilations'.
+[2026-04-25 11:27:38] Merged 31 bytes for 'compilations'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'compilation_args'.
+[2026-04-25 11:27:38] Merged 85 bytes for 'compilation_args'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'compilation_expanded_args'.
+[2026-04-25 11:27:38] Merged 85 bytes for 'compilation_expanded_args'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'compilation_compiling_files'.
+[2026-04-25 11:27:38] Merged 41 bytes for 'compilation_compiling_files'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'compilation_time'.
+[2026-04-25 11:27:38] Merged 101 bytes for 'compilation_time'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'compilation_finished'.
+[2026-04-25 11:27:38] Merged 70 bytes for 'compilation_finished'.
+[2026-04-25 11:27:38] Merging 1 fragment for 'sourceLocationPrefix'.
+[2026-04-25 11:27:38] Merged 18 bytes for 'sourceLocationPrefix'.
+[2026-04-25 11:27:38] Saving string and id pools to disk.
+[2026-04-25 11:27:38] Finished importing TRAP files.
+[2026-04-25 11:27:38] Read 3.55 MiB of uncompressed TRAP data.
+[2026-04-25 11:27:38] Uncompressed relation data size: 450.30 KiB
+[2026-04-25 11:27:38] Relation data size: 109.34 KiB (merge rate: 687.20 KiB/s)
+[2026-04-25 11:27:38] String pool size: 2.13 MiB
+[2026-04-25 11:27:38] ID pool size: 1.38 MiB
+[2026-04-25 11:27:38] [PROGRESS] dataset import> Finished writing database (relations: 109.34 KiB; string pool: 2.13 MiB).
+[2026-04-25 11:27:38] Pausing evaluation to close the cache at sequence stamp o+233
+[2026-04-25 11:27:38] The disk cache is freshly trimmed; leave it be.
+[2026-04-25 11:27:38] Unpausing evaluation
+[2026-04-25 11:27:38] Plumbing command codeql dataset import completed.
+[2026-04-25 11:27:38] [PROGRESS] database finalize> TRAP import complete (1.8s).
+[2026-04-25 11:27:38] Running plumbing command: codeql database cleanup -- /home/test/my-awesome-project/CISB/server/datarace/db-l4
+[2026-04-25 11:27:38] [PROGRESS] database cleanup> Cleaning up existing TRAP files after import...
+[2026-04-25 11:27:38] [PROGRESS] database cleanup> TRAP files cleaned up (2ms).
+[2026-04-25 11:27:38] [PROGRESS] database cleanup> Cleaning up scratch directory...
+[2026-04-25 11:27:38] [PROGRESS] database cleanup> Scratch directory cleaned up (7ms).
+[2026-04-25 11:27:38] Running plumbing command: codeql dataset cleanup -- /home/test/my-awesome-project/CISB/server/datarace/db-l4/db-cpp
+[2026-04-25 11:27:38] [PROGRESS] dataset cleanup> Cleaning up dataset in /home/test/my-awesome-project/CISB/server/datarace/db-l4/db-cpp.
+[2026-04-25 11:27:38] Trimming disk cache at /home/test/my-awesome-project/CISB/server/datarace/db-l4/db-cpp/default/cache in mode trim.
+[2026-04-25 11:27:38] Sequence stamp origin is -5921352619632369640
+[2026-04-25 11:27:38] Pausing evaluation to quickly trim memory at sequence stamp o+0
+[2026-04-25 11:27:38] Unpausing evaluation
+[2026-04-25 11:27:38] Pausing evaluation to zealously trim disk at sequence stamp o+1
+[2026-04-25 11:27:38] Unpausing evaluation
+[2026-04-25 11:27:38] Trimming completed (2ms): Trimmed disposable data from cache.
+[2026-04-25 11:27:38] Pausing evaluation to close the cache at sequence stamp o+2
+[2026-04-25 11:27:38] The disk cache is freshly trimmed; leave it be.
+[2026-04-25 11:27:38] Unpausing evaluation
+[2026-04-25 11:27:38] [PROGRESS] dataset cleanup> Trimmed disposable data from cache.
+[2026-04-25 11:27:38] [PROGRESS] dataset cleanup> Finalizing dataset in /home/test/my-awesome-project/CISB/server/datarace/db-l4/db-cpp
+[2026-04-25 11:27:38] [DETAILS] dataset cleanup> Finished deleting ID pool from /home/test/my-awesome-project/CISB/server/datarace/db-l4/db-cpp (1ms).
+[2026-04-25 11:27:38] Plumbing command codeql dataset cleanup completed.
+[2026-04-25 11:27:38] Plumbing command codeql database cleanup completed with status 0.
+[2026-04-25 11:27:38] [PROGRESS] database finalize> Finished zipping source archive (102.25 KiB).
+[2026-04-25 11:27:38] Plumbing command codeql database finalize completed.
+[2026-04-25 11:27:38] [PROGRESS] database create> Successfully created database at /home/test/my-awesome-project/CISB/server/datarace/db-l4.
+[2026-04-25 11:27:38] Terminating normally.
