@@ -1,0 +1,5 @@
+{
+  "triggers": ["Compiler optimization at -O2 or higher", "Inline assembly missing 'memory' clobber", "Dead store elimination removing write that is not visible to asm"],
+  "vulnerable_pattern": "store of constant (e.g., 0) to a memory location via pointer dereference, followed by an inline assembly that implicitly reads the same memory via the same pointer, without a 'memory' clobber in the asm",
+  "ql_constraints": "exists(AssignExpr store, AsmStmt as, Expr ptr | store.getRValue().(Literal) and store.getLValue().(PointerDereference) and not as.hasGlobalMemoryClobber() and as.getAnInputOperand().getExpr() = ptr and store.getEnclosingFunction().getStmt().getChildStmt().indexOf(store) < store.getEnclosingFunction().getStmt().getChildStmt().indexOf(as))"
+}

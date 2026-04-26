@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "编译器优化（如 -O2 及以上）可能消除用于稳定值的局部变量，导致重新读取并发更新的位域成员",
+    "位域成员不具备 volatile 或原子语义，编译器可自由优化"
+  ],
+  "vulnerable_pattern": "type var = bitfield_member;  (bitfield_member 为结构体位域成员，且后续对 var 的读取可能被编译器替换为重新读取 bitfield_member)",
+  "ql_constraints": "exists(LocalVariable v, Assignment a | a.getTarget() = v and a.getRHS() = any(StructMemberAccess m | m.isBitField()) and not exists(ReadOrWrite r | r.getSource() = v and r.isProtectedByReadOnce()))"
+}

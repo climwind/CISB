@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    "编译器优化级别 (如 -O2) 启用寄存器缓存或指令重排",
+    "共享变量被多个执行上下文（如中断、其他线程）并发修改",
+    "未使用 volatile 或原子访问原语 (如 READ_ONCE) 阻止编译器优化"
+  ],
+  "vulnerable_pattern": "nonVolatileNonAtomicRead(sharedVar)",
+  "ql_constraints": "exists(VariableAccess va, Variable v | va.getTarget() = v and v.getAnAccess().isWrite() and not v.isVolatile() and not exists(AtomicAccess aa | aa.getTarget() = v) and va.getFile().getBaseName() != \"\" and v.getDeclaringType().getCompilationUnit().getFile().getBaseName() != \"\" and not va.isInMacro() and not v.getDeclaringType().(?{HasExternalLinkage}).hasName(\"__attribute__\") and any(OptimizationLevel o | o.getValue() >= 2).isActive())"
+}

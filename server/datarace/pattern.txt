@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    "编译器优化级别（如-O2）允许将局部变量引用替换为原始成员表达式",
+    "被读取的成员（q->lock_ptr）可能被并发线程修改，导致两次读取结果不同",
+    "缺少内存屏障（barrier）或volatile限定"
+  ],
+  "vulnerable_pattern": "local_var = struct_ptr->field;\\nif (isNonNull(local_var)) {\\n    // 编译器可能将后续对该局部变量的使用替换为 struct_ptr->field\\n    use(struct_ptr->field);\\n}",
+  "ql_constraints": "exists(Expr assignSrc, FieldAccess fa, FunctionCall call |\n  assignSrc = fa and\n  assignSrc instanceof FieldAccess and\n  call.getAnArgument() = fa and\n  fa.getField() = assignSrc.getField() and\n  fa.getQualifier() = assignSrc.getQualifier() and\n  exists(LocalVariable lv | lv.getInitializer() = assignSrc and\n    lv.getAUse() != fa and\n    exists(IfStmt cond | cond.getCondition() = lv.getAnAccess() and\n      call in cond.getThenBlock().getDescendants())\n  )\n)"
+}

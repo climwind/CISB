@@ -1,0 +1,8 @@
+{
+    "triggers": [
+        "GCC -fdelete-null-pointer-checks optimization enabled at -O2/-O3/-Os",
+        "Inline asm uses memory operand constraint (e.g., \"o\", \"m\") with expression that dereferences a pointer"
+    ],
+    "vulnerable_pattern": "In inline asm, use a memory constraint with an operand such as `*(type *)(ptr)` or `*ptr`, causing the compiler to assume `ptr` is non-null. Subsequently, a null check on `ptr` (e.g., `isNull(ptr)` or `isNonNull(ptr)` as a guard) is eliminated.",
+    "ql_constraints": "exists(AsmStmt asm, Expr ptr, Expr deref | deref = ptr.(PointerDereferenceExpr) and asm.getAnOperand().getExpr() = deref and asm.getAnOperand().getConstraint().matches(\"[om]\")) and exists(IfStmt ifStmt, Expr cond | cond = ptr.(NullCheck) and ifStmt.getCondition() = cond and cond in [ptr.(BinaryExpr).(EQ).getAnOperand() = 0, ptr.(UnaryExpr).(Not), ptr.(BinaryExpr).(NE).getAnOperand() = 0])"
+}
