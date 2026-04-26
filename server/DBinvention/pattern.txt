@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    "GCC 4.5 changed default structure alignment to 32 bytes, overriding previous 4-byte alignment",
+    "Structure declarations in array section lack explicit alignment attribute",
+    "Initialization code assumes fixed element size (4 bytes) when iterating over array"
+  ],
+  "vulnerable_pattern": "static struct ftrace_event_call event_##name;  // missing __attribute__((aligned(4)))",
+  "ql_constraints": "exists(Struct s | s.getName() = \"ftrace_event_call\" and not exists(s.getAttribute(\"aligned\"))) and exists(Variable v | v.getType() = s and v.isStatic())"
+}

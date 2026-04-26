@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    "结构体指针字段通过普通赋值写入，且写入值是指针与标志位组合（或来自带flag/tag语义的临时变量）",
+    "写入路径未使用WRITE_ONCE、atomic_store或等价原子写封装",
+    "同名字段在其他函数存在读取，形成并发读写窗口并放大store tearing/reordering风险"
+  ],
+  "vulnerable_pattern": "某结构体指针字段接收了带标签的指针值（如ptr|FLAG或ptr+mask，或由带flag/tag命名临时变量承载），但写入采用普通赋值且无WRITE_ONCE/原子写保护；若其他执行路径并发读取该字段，读取方可能观察到中间态或重排后的不一致状态。",
+  "ql_constraints": "exists(AssignExpr store, FieldAccess fa, Function wf | fa = store.getLValue() and fa.getTarget().getType() instanceof PointerType and (exists(BinaryOperation bo | bo = store.getRValue().getAChild*() and (bo.getOperator() = \"|\" or bo.getOperator() = \"+\")) or exists(VariableAccess va | va = store.getRValue() and va.getTarget().getName().regexpMatch(\"(?i).*(flag|mask|tag|anon|encoded|bits).*\"))) and not store.toString().regexpMatch(\"(?i).*WRITE_ONCE\\\\s*\\\\(.*\") and not exists(FunctionCall ac | ac.getEnclosingFunction() = wf and ac.getTarget().hasName([\"WRITE_ONCE\",\"atomic_store\",\"atomic_store_explicit\",\"__atomic_store_n\",\"InterlockedExchangePointer\"])) and exists(FieldAccess rd, Function rf | rd.getTarget().hasName(fa.getTarget().getName()) and rf = rd.getEnclosingFunction() and rf != wf and not exists(AssignExpr a | a.getLValue() = rd)))"
+}

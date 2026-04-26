@@ -1,0 +1,27 @@
+{
+    "triggers": [
+        "Compiler optimization (e.g., -O2) reorders memory loads across memcpy/struct assignment and subsequent bit extraction",
+        "Hardware writes descriptor ready bit before rest of status message; driver must read bit first then rest"
+    ],
+    "vulnerable_pattern": "read_data = memcpy(dst, src, size); flag = extract_flag(read_data);",
+    "ql_constraints": "exists(MemRead mr, FlagExtract fe, Expr val |
+  // 1. 读取侧：memcpy 整个结构体，或通过指针解引用进行结构体赋值
+  (mr = memcpy(_, src, _) or mr = *src) and
+  // 2. 标志提取：WIL_GET_BITS 的第一个参数，或右移表达式的操作数
+  (fe = WIL_GET_BITS(val, _, _) or fe = (val >> _)) and
+  // 3. 放宽的数据依赖：val 必须是通过 mr.getDest() 直接或间接可达的表达式
+  (
+    val = mr.getDest()                           // 直接使用目标变量
+    or
+    val = mr.getDest().(FieldAccess)             // 目标变量.成员
+    or
+    val = ((CastExpr) mr.getDest()).(FieldAccess)// 类型转换后取成员
+    or
+    DataFlow::localExprFlow(mr.getDest(), val)   // 存在局部数据流（无函数调用）
+  ) and
+  // 4. 没有内存屏障插在读取与提取之间
+  noMemoryBarrier(mr, fe) and
+  // 5. 读取的源头是共享内存（硬件可并发写入）
+  src instanceof SharedMemAccess
+)"
+}

@@ -1,0 +1,10 @@
+[2026-04-26 00:03:35] This is codeql query run dbg_vars.ql --database db-l20 --output /tmp/dbg_vars.bqrs
+[2026-04-26 00:03:35] Log file was started late.
+[2026-04-26 00:03:35] Calling plumbing command: codeql resolve ram --dataset=/home/test/my-awesome-project/CISB/server/DBinvention/db-l20/db-cpp --format=json
+[2026-04-26 00:03:35] [PROGRESS] resolve ram> Stringpool size measured as 2179482
+[2026-04-26 00:03:35] Plumbing command codeql resolve ram completed:
+                      [
+                        "-J-Xmx1376M"
+                      ]
+[2026-04-26 00:03:35] Chaining via /tmp/codeql.rKpvaKGY to plumbing: execute queries -J-Xmx1376M --verbosity=progress --logdir=/home/test/my-awesome-project/CISB/server/DBinvention/db-l20/log --evaluator-log-level=5 --warnings=show --qlconfig-file=/home/test/my-awesome-project/CISB/server/DBinvention/qlconfig.yml --dynamic-join-order-mode=none --output=/tmp/dbg_vars.bqrs -- /home/test/my-awesome-project/CISB/server/DBinvention/db-l20/db-cpp path:/home/test/my-awesome-project/CISB/server/DBinvention/dbg_vars.ql
+[2026-04-26 00:03:35] Exiting with code 70

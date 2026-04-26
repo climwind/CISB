@@ -1,0 +1,75 @@
+[2026-04-25 23:30:17] This is codeql execute queries -J-Xmx1376M --verbosity=progress --logdir=/home/test/my-awesome-project/CISB/server/UBunalignedaccess/db-l47/log --evaluator-log-level=5 --warnings=show --qlconfig-file=/home/test/my-awesome-project/CISB/server/UBunalignedaccess/qlconfig.yml --dynamic-join-order-mode=none --rerun --interpret-passthrough=null,--format=csv,-o=/tmp/check_unaligned_presence.csv,--max-paths=4,--csv-location-format=line-column,--print-diagnostics-summary,--print-metrics-summary,--qlconfig-file=/home/test/my-awesome-project/CISB/server/UBunalignedaccess/qlconfig.yml,--,/home/test/my-awesome-project/CISB/server/UBunalignedaccess/db-l47,/tmp/check_unaligned_presence.ql --output=/home/test/my-awesome-project/CISB/server/UBunalignedaccess/db-l47/results -- /home/test/my-awesome-project/CISB/server/UBunalignedaccess/db-l47/db-cpp /tmp/check_unaligned_presence.ql
+[2026-04-25 23:30:17] Calling plumbing command: codeql resolve queries --qlconfig-file=/home/test/my-awesome-project/CISB/server/UBunalignedaccess/qlconfig.yml --format=json -- /tmp/check_unaligned_presence.ql
+[2026-04-25 23:30:17] [PROGRESS] resolve queries> Recording pack reference (anonymous QL pack at /tmp/check_unaligned_presence.ql) at /tmp.
+[2026-04-25 23:30:18] Plumbing command codeql resolve queries completed:
+                      [
+                        "/tmp/check_unaligned_presence.ql"
+                      ]
+[2026-04-25 23:30:18] Creating executor with 1 threads.
+[2026-04-25 23:30:18] Calling plumbing command: codeql resolve extensions --qlconfig-file=/home/test/my-awesome-project/CISB/server/UBunalignedaccess/qlconfig.yml --include-extension-row-locations /tmp/check_unaligned_presence.ql
+[2026-04-25 23:30:18] Calling plumbing command: codeql resolve queries --qlconfig-file=/home/test/my-awesome-project/CISB/server/UBunalignedaccess/qlconfig.yml --allow-library-packs --format startingpacks -- /tmp/check_unaligned_presence.ql
+[2026-04-25 23:30:18] [PROGRESS] resolve queries> Recording pack reference (anonymous QL pack at /tmp/check_unaligned_presence.ql) at /tmp.
+[2026-04-25 23:30:18] Plumbing command codeql resolve queries completed:
+                      [
+                        "/tmp"
+                      ]
+[2026-04-25 23:30:18] Calling plumbing command: codeql resolve extensions-by-pack --qlconfig-file=/home/test/my-awesome-project/CISB/server/UBunalignedaccess/qlconfig.yml --include-extension-row-locations -- /tmp
+[2026-04-25 23:30:18] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] <anonymous pack>: not 0.0.0 {root: <anonymous pack>@0.0.0}
+[2026-04-25 23:30:18] [SPAMMY] resolve extensions-by-pack> [DERIVATION] <anonymous pack>: 0.0.0 {<anonymous pack>: not 0.0.0 {root: <anonymous pack>@0.0.0}}
+[2026-04-25 23:30:18] [SPAMMY] resolve extensions-by-pack> [DECISION 1] <anonymous pack>: 0.0.0
+[2026-04-25 23:30:18] Plumbing command codeql resolve extensions-by-pack completed:
+                      {
+                        "models" : [ ],
+                        "data" : { },
+                        "threatModels" : { },
+                        "extensionPacks" : [ ]
+                      }
+[2026-04-25 23:30:18] Plumbing command codeql resolve extensions completed:
+                      {
+                        "models" : [ ],
+                        "data" : { },
+                        "threatModels" : { },
+                        "extensionPacks" : [ ]
+                      }
+[2026-04-25 23:30:18] [WARN] execute queries> Not caching stages during query-loading, since max heap size is only 1376 MB.
+[2026-04-25 23:30:18] Calling plumbing command: codeql resolve library-path --qlconfig-file=/home/test/my-awesome-project/CISB/server/UBunalignedaccess/qlconfig.yml --query=/tmp/check_unaligned_presence.ql --format=json
+[2026-04-25 23:30:18] [DETAILS] resolve library-path> Resolving query at normalized path /tmp/check_unaligned_presence.ql.
+[2026-04-25 23:30:18] [DETAILS] resolve library-path> Found no pack; trying after symlink resolution with /tmp/check_unaligned_presence.ql.
+[2026-04-25 23:30:18] [DETAILS] resolve library-path> Found enclosing pack 'tmp' at /tmp.
+[2026-04-25 23:30:18] [DETAILS] resolve library-path> Adding compilation cache at /home/test/.codeql/compile-cache.
+[2026-04-25 23:30:18] [DETAILS] resolve library-path> Resolving library dependencies from /tmp/check_unaligned_presence.ql.
+[2026-04-25 23:30:18] [SPAMMY] resolve library-path> [INCOMPATIBILITY] <anonymous pack>: not 0.0.0 {root: <anonymous pack>@0.0.0}
+[2026-04-25 23:30:18] [SPAMMY] resolve library-path> [DERIVATION] <anonymous pack>: 0.0.0 {<anonymous pack>: not 0.0.0 {root: <anonymous pack>@0.0.0}}
+[2026-04-25 23:30:18] [SPAMMY] resolve library-path> [DECISION 1] <anonymous pack>: 0.0.0
+[2026-04-25 23:30:18] [DETAILS] resolve library-path> QL pack dependencies for /tmp resolved OK.
+[2026-04-25 23:30:18] [DETAILS] resolve library-path> Found no dbscheme through dependencies.
+[2026-04-25 23:30:18] Plumbing command codeql resolve library-path completed:
+                      {
+                        "libraryPath" : [
+                          "/tmp"
+                        ],
+                        "compilationCache" : [
+                          "/home/test/.codeql/compile-cache"
+                        ],
+                        "relativeName" : "tmp/check_unaligned_presence.ql",
+                        "possibleAdvice" : "There should probably be a qlpack.yml file declaring dependencies in /tmp or an enclosing directory.",
+                        "qlPackName" : "tmp"
+                      }
+[2026-04-25 23:30:18] [PROGRESS] execute queries> Compiling query plan for /tmp/check_unaligned_presence.ql.
+[2026-04-25 23:30:18] [DETAILS] execute queries> Resolving imports for /tmp/check_unaligned_presence.ql.
+[2026-04-25 23:30:18] Resolved file set for /tmp/check_unaligned_presence.ql hashes to 222e51de183e9fa7dc84a402602ff020.
+[2026-04-25 23:30:18] [DETAILS] execute queries> Checking QL for /tmp/check_unaligned_presence.ql.
+[2026-04-25 23:30:18] Stale frontend caches are invalidated based on import graph reachability.
+[2026-04-25 23:30:19] ExternalModuleBindingPass ...
+[2026-04-25 23:30:19] ExternalModuleBindingPass time: 00:00.002
+[2026-04-25 23:30:19] CollectInstantiationsPass ...
+[2026-04-25 23:30:19] CollectInstantiationsPass time: 00:00.007
+[2026-04-25 23:30:19] Ql checks ...
+[2026-04-25 23:30:19] Ql checks time: 00:00.076
+[2026-04-25 23:30:19] [ERROR] execute queries> ERROR: could not resolve module cpp (/tmp/check_unaligned_presence.ql:5,8-11)
+[2026-04-25 23:30:19] [ERROR] execute queries> ERROR: could not resolve type Function (/tmp/check_unaligned_presence.ql:6,6-14)
+[2026-04-25 23:30:19] Sequence stamp origin is -5921166389915244201
+[2026-04-25 23:30:19] Pausing evaluation to close the cache at sequence stamp o+0
+[2026-04-25 23:30:19] The disk cache is freshly trimmed; leave it be.
+[2026-04-25 23:30:19] Unpausing evaluation
+[2026-04-25 23:30:19] Exiting with code 2

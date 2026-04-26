@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "Compiler instruction reordering (e.g., GCC -O2) on non-atomic writes to shared variables without explicit synchronization (e.g., missing lock)",
+    "Multithreaded environment where multiple threads access mddev->prev_flush_start and mddev->flush_bio without lock protection"
+  ],
+  "vulnerable_pattern": "Two consecutive writes to shared variables (V1, V2) where V1 = expr (non-null), V2 = NULL (or 0), without intervening synchronization. Compiler may reorder the writes, causing an inconsistent state.",
+  "ql_constraints": "exists(FieldWrite w1, FieldWrite w2 | w1.getEnclosingStmt() = w2.getEnclosingStmt() and w1.getIndex() + 1 = w2.getIndex() and w1.getTarget() = someSharedVariable and w2.getTarget() = someSharedVariable and (w2.getRhs() instanceof NullLiteral or w2.getRhs().(Literal).getValue() = 0) and not exists(Synchronization s | s.enclosingStmt() = w1.getEnclosingStmt() or s in (w1, w2).getEnclosingBlock()))"
+}

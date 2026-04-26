@@ -1,0 +1,10 @@
+[2026-04-26 12:03:33] This is codeql query run --database db-l19 test1.ql --output result.bqrs
+[2026-04-26 12:03:33] Log file was started late.
+[2026-04-26 12:03:33] Calling plumbing command: codeql resolve ram --dataset=/home/test/my-awesome-project/CISB/server/condItionalload/db-l19/db-cpp --format=json
+[2026-04-26 12:03:33] [PROGRESS] resolve ram> Stringpool size measured as 2179482
+[2026-04-26 12:03:33] Plumbing command codeql resolve ram completed:
+                      [
+                        "-J-Xmx1376M"
+                      ]
+[2026-04-26 12:03:33] Chaining via /tmp/codeql.JJKeIcXo to plumbing: execute queries -J-Xmx1376M --verbosity=progress --logdir=/home/test/my-awesome-project/CISB/server/condItionalload/db-l19/log --evaluator-log-level=5 --warnings=show --qlconfig-file=/home/test/my-awesome-project/CISB/server/condItionalload/qlconfig.yml --dynamic-join-order-mode=none --output=/home/test/my-awesome-project/CISB/server/condItionalload/result.bqrs -- /home/test/my-awesome-project/CISB/server/condItionalload/db-l19/db-cpp path:/home/test/my-awesome-project/CISB/server/condItionalload/test1.ql
+[2026-04-26 12:03:33] Exiting with code 70

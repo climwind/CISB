@@ -1,0 +1,8 @@
+[2026-04-26 00:02:54] This is codeql execute queries -J-Xmx1376M --verbosity=progress --logdir=/home/test/my-awesome-project/CISB/server/DBinvention/db-l20/log --evaluator-log-level=5 --warnings=show --qlconfig-file=/home/test/my-awesome-project/CISB/server/DBinvention/qlconfig.yml --dynamic-join-order-mode=none --output=/tmp/dbg_vars.bqrs -- /home/test/my-awesome-project/CISB/server/DBinvention/db-l20/db-cpp path:/home/test/my-awesome-project/CISB/server/DBinvention/dbg_vars.ql
+[2026-04-26 00:02:54] Calling plumbing command: codeql resolve queries --qlconfig-file=/home/test/my-awesome-project/CISB/server/DBinvention/qlconfig.yml --format=json -- path:/home/test/my-awesome-project/CISB/server/DBinvention/dbg_vars.ql
+[2026-04-26 00:02:55] [PROGRESS] resolve queries> Recording pack reference test22 at /home/test/my-awesome-project/CISB/server/DBinvention.
+[2026-04-26 00:02:55] Plumbing command codeql resolve queries completed:
+                      [
+                        "/home/test/my-awesome-project/CISB/server/DBinvention/dbg_vars.ql"
+                      ]
+[2026-04-26 00:02:55] Creating executor with 1 threads.

@@ -1,0 +1,211 @@
+[2026-04-26 00:09:46] This is codeql execute queries -J-Xmx1376M --verbosity=progress --logdir=/home/test/my-awesome-project/CISB/server/DBinvention/db-l20/log --evaluator-log-level=5 --warnings=show --qlconfig-file=/home/test/my-awesome-project/CISB/server/DBinvention/qlconfig.yml --dynamic-join-order-mode=none --output=/tmp/dbg_files.bqrs -- /home/test/my-awesome-project/CISB/server/DBinvention/db-l20/db-cpp path:/home/test/my-awesome-project/CISB/server/DBinvention/dbg_files.ql
+[2026-04-26 00:09:46] Calling plumbing command: codeql resolve queries --qlconfig-file=/home/test/my-awesome-project/CISB/server/DBinvention/qlconfig.yml --format=json -- path:/home/test/my-awesome-project/CISB/server/DBinvention/dbg_files.ql
+[2026-04-26 00:09:47] [PROGRESS] resolve queries> Recording pack reference test22 at /home/test/my-awesome-project/CISB/server/DBinvention.
+[2026-04-26 00:09:47] Plumbing command codeql resolve queries completed:
+                      [
+                        "/home/test/my-awesome-project/CISB/server/DBinvention/dbg_files.ql"
+                      ]
+[2026-04-26 00:09:47] Creating executor with 1 threads.
+[2026-04-26 00:09:48] Calling plumbing command: codeql resolve extensions --qlconfig-file=/home/test/my-awesome-project/CISB/server/DBinvention/qlconfig.yml --include-extension-row-locations path:/home/test/my-awesome-project/CISB/server/DBinvention/dbg_files.ql
+[2026-04-26 00:09:48] Calling plumbing command: codeql resolve queries --qlconfig-file=/home/test/my-awesome-project/CISB/server/DBinvention/qlconfig.yml --allow-library-packs --format startingpacks -- path:/home/test/my-awesome-project/CISB/server/DBinvention/dbg_files.ql
+[2026-04-26 00:09:48] [PROGRESS] resolve queries> Recording pack reference test22 at /home/test/my-awesome-project/CISB/server/DBinvention.
+[2026-04-26 00:09:48] Plumbing command codeql resolve queries completed:
+                      [
+                        "/home/test/my-awesome-project/CISB/server/DBinvention"
+                      ]
+[2026-04-26 00:09:48] Calling plumbing command: codeql resolve extensions-by-pack --qlconfig-file=/home/test/my-awesome-project/CISB/server/DBinvention/qlconfig.yml --include-extension-row-locations -- /home/test/my-awesome-project/CISB/server/DBinvention
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] test22: not 0.0.0 {root: test22@0.0.0}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DERIVATION] test22: 0.0.0 {test22: not 0.0.0 {root: test22@0.0.0}}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] test22: * [*], codeql/cpp-all: not * [*] {dependency: test22@* [*] requires codeql/cpp-all@*}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DECISION 1] test22: 0.0.0
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DERIVATION] codeql/cpp-all: * [*] {test22: * [*], codeql/cpp-all: not * [*] {dependency: test22@* [*] requires codeql/cpp-all@*}}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/cpp-all: * [*], codeql/dataflow: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/dataflow@2.1.3}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/cpp-all: * [*], codeql/mad: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/mad@1.0.47}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/cpp-all: * [*], codeql/quantum: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/quantum@0.0.25}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/cpp-all: * [*], codeql/rangeanalysis: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/rangeanalysis@1.0.47}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/cpp-all: * [*], codeql/ssa: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/ssa@2.0.23}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/cpp-all: * [*], codeql/tutorial: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/tutorial@1.0.47}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/cpp-all: * [*], codeql/typeflow: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/typeflow@1.0.47}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/cpp-all: * [*], codeql/util: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/util@2.0.34}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/cpp-all: * [*], codeql/xml: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/xml@1.0.47}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DECISION 2] codeql/cpp-all: 9.0.0
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DERIVATION] codeql/xml: * [*] {codeql/cpp-all: * [*], codeql/xml: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/xml@1.0.47}}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DERIVATION] codeql/util: * [*] {codeql/cpp-all: * [*], codeql/util: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/util@2.0.34}}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DERIVATION] codeql/typeflow: * [*] {codeql/cpp-all: * [*], codeql/typeflow: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/typeflow@1.0.47}}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DERIVATION] codeql/tutorial: * [*] {codeql/cpp-all: * [*], codeql/tutorial: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/tutorial@1.0.47}}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DERIVATION] codeql/ssa: * [*] {codeql/cpp-all: * [*], codeql/ssa: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/ssa@2.0.23}}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DERIVATION] codeql/rangeanalysis: * [*] {codeql/cpp-all: * [*], codeql/rangeanalysis: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/rangeanalysis@1.0.47}}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DERIVATION] codeql/quantum: * [*] {codeql/cpp-all: * [*], codeql/quantum: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/quantum@0.0.25}}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DERIVATION] codeql/mad: * [*] {codeql/cpp-all: * [*], codeql/mad: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/mad@1.0.47}}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DERIVATION] codeql/dataflow: * [*] {codeql/cpp-all: * [*], codeql/dataflow: not * [*] {dependency: codeql/cpp-all@* [*] requires codeql/dataflow@2.1.3}}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/dataflow: * [*], codeql/controlflow: not * [*] {dependency: codeql/dataflow@* [*] requires codeql/controlflow@2.0.31}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/dataflow: * [*], codeql/ssa: not * [*] {dependency: codeql/dataflow@* [*] requires codeql/ssa@2.0.23}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/dataflow: * [*], codeql/typetracking: not * [*] {dependency: codeql/dataflow@* [*] requires codeql/typetracking@2.0.31}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/dataflow: * [*], codeql/util: not * [*] {dependency: codeql/dataflow@* [*] requires codeql/util@2.0.34}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DECISION 3] codeql/dataflow: 2.1.3
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DERIVATION] codeql/typetracking: * [*] {codeql/dataflow: * [*], codeql/typetracking: not * [*] {dependency: codeql/dataflow@* [*] requires codeql/typetracking@2.0.31}}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DERIVATION] codeql/controlflow: * [*] {codeql/dataflow: * [*], codeql/controlflow: not * [*] {dependency: codeql/dataflow@* [*] requires codeql/controlflow@2.0.31}}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/controlflow: * [*], codeql/util: not * [*] {dependency: codeql/controlflow@* [*] requires codeql/util@2.0.34}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DECISION 4] codeql/controlflow: 2.0.31
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/mad: * [*], codeql/dataflow: not * [*] {dependency: codeql/mad@* [*] requires codeql/dataflow@2.1.3}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/mad: * [*], codeql/util: not * [*] {dependency: codeql/mad@* [*] requires codeql/util@2.0.34}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DECISION 5] codeql/mad: 1.0.47
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/quantum: * [*], codeql/util: not * [*] {dependency: codeql/quantum@* [*] requires codeql/util@2.0.34}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DECISION 6] codeql/quantum: 0.0.25
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/rangeanalysis: * [*], codeql/util: not * [*] {dependency: codeql/rangeanalysis@* [*] requires codeql/util@2.0.34}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DECISION 7] codeql/rangeanalysis: 1.0.47
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/ssa: * [*], codeql/controlflow: not * [*] {dependency: codeql/ssa@* [*] requires codeql/controlflow@2.0.31}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/ssa: * [*], codeql/util: not * [*] {dependency: codeql/ssa@* [*] requires codeql/util@2.0.34}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DECISION 8] codeql/ssa: 2.0.23
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DECISION 9] codeql/tutorial: 1.0.47
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/typeflow: * [*], codeql/util: not * [*] {dependency: codeql/typeflow@* [*] requires codeql/util@2.0.34}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DECISION 10] codeql/typeflow: 1.0.47
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/typetracking: * [*], codeql/util: not * [*] {dependency: codeql/typetracking@* [*] requires codeql/util@2.0.34}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DECISION 11] codeql/typetracking: 2.0.31
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DECISION 12] codeql/util: 2.0.34
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [INCOMPATIBILITY] codeql/xml: * [*], codeql/util: not * [*] {dependency: codeql/xml@* [*] requires codeql/util@2.0.34}
+[2026-04-26 00:09:48] [SPAMMY] resolve extensions-by-pack> [DECISION 13] codeql/xml: 1.0.47
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/Boost.Asio.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:sourceModel: 6 tuples.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:sinkModel: 4 tuples.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 1 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/CA2CAEX.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 13 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/CAtlArray.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 10 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/CAtlFile.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 4 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/CAtlFileMappingBase.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 9 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/CAtlList.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 10 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/CAtlTemporaryFile.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 3 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/CComBSTR.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 28 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/CComSafeArray.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 21 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/CPathT.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 15 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/CRegKey.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 15 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/CSimpleArray.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 7 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/CSimpleMap.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 8 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/CSimpleStringT.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 37 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/CStrBufT.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 3 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/CStringData.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 1 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/CStringT.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 113 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/CUrl.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 17 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/ComPtr.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 26 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/ComPtrRef.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 5 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/MySql.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 2 tuples.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:barrierModel: 2 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/Oracle.oci.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:sinkModel: 2 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/Windows.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:sourceModel: 25 tuples.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 15 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/ZMQ.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:sourceModel: 3 tuples.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:sinkModel: 3 tuples.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 2 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/allocation/Bsd.allocation.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:allocationFunctionModel: 2 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/allocation/Glibc.allocation.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:allocationFunctionModel: 2 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/allocation/OpenSSL.allocation.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:allocationFunctionModel: 4 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/allocation/Std.allocation.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:allocationFunctionModel: 10 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/allocation/Windows.allocation.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:allocationFunctionModel: 24 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/allocation/empty.allocation.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:allocationFunctionModel: 0 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/azure.core.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:sourceModel: 6 tuples.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 25 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/bsl.array.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 9 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/bsl.deque.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 69 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/bsl.forward_list.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 52 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/bsl.list.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 67 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/bsl.vector.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 56 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/cctype.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 4 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/deallocation/Bsd.deallocation.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:deallocationFunctionModel: 3 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/deallocation/Std.deallocation.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:deallocationFunctionModel: 37 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/deallocation/Windows.deallocation.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:deallocationFunctionModel: 36 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/deallocation/empty.deallocation.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:deallocationFunctionModel: 0 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/empty.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:sourceModel: 0 tuples.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:sinkModel: 0 tuples.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:barrierModel: 0 tuples.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:barrierGuardModel: 0 tuples.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 0 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/generated/brotli/brotli.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 474 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/generated/curl/curl.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 953 tuples.
+[2026-04-26 00:09:48] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/generated/empty.model.yml.
+[2026-04-26 00:09:48] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 0 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/generated/glibc/glibc.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 5488 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/generated/libidn2/libidn2.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 142 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/generated/libssh2/libssh2.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 511 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/generated/libuv/libuv.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 640 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/generated/nghttp2/nghttp2.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 565 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/generated/openssl/openssl.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 21578 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/generated/sqlite/sqlite.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 942 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/generated/zlib/zlib.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 162 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/getc.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:sourceModel: 13 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/iconv.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 1 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/oleauto.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 3 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/pthread.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 1 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/std.array.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 9 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/std.deque.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 69 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/std.format.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 9 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/std.forward_list.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 52 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/std.iterator.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 6 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/std.list.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 67 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/std.thread.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 5 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/cpp-all/9.0.0/ext/std.vector.model.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/cpp-all:summaryModel: 56 tuples.
+[2026-04-26 00:09:49] [PROGRESS] resolve extensions-by-pack> Loading data extensions in /home/test/.codeql/packages/codeql/util/2.0.34/ext/default-alert-filter.yml.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/util:restrictAlertsTo: 0 tuples.
+[2026-04-26 00:09:49] [DETAILS] resolve extensions-by-pack>   Found extension targeting codeql/util:restrictAlertsToExactLocation: 0 tuples.

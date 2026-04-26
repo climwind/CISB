@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "Size-dispatch switch contains multiple case arms that load from pointer dereference into the same destination variable.",
+    "Switch lacks protective break statements, so fallthrough can overwrite narrow read with wider read and violate expected field-size semantics."
+  ],
+  "vulnerable_pattern": "switch (size_selector) { case 1: dst = *(u8*)p; case 2: dst = *(u16*)p; case 4: dst = *(u32*)p; case 8: dst = *(u64*)p; } // Multiple pointer-dereference loads target the same destination, but missing break causes fallthrough and unintended wider read.",
+  "ql_constraints": "exists(SwitchStmt sw, AssignExpr a1, AssignExpr a2, PointerDereferenceExpr d1, PointerDereferenceExpr d2 | a1 != a2 and d1 != d2 and a1.getRValue() = d1 and a2.getRValue() = d2 and a1.getLValue().toString() = a2.getLValue().toString() and a1 and a2 are within sw and not exists(BreakStmt b | b is within sw))"
+}
