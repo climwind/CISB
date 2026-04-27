@@ -1,0 +1,13 @@
+失败原因：fa 是一个 FieldAccess（如 inet.hdrincl），fa.getTarget() 返回的是被访问的对象表达式（即 inet），它是一个普通的变量访问，类型为 VariableAccess，绝不可能是 BitField。BitField 在 CodeQL 中代表位域字段声明本身（属于 Field 的子类），只能用 FieldAccess.getField() 获得。因此该条件永远为假，查询不会返回任何结果，自然无法命中示例代码。
+修改：
+捕获变量的来源
+原始约束仅考虑 Assignment（a.getTarget() = v），但漏洞代码使用的是声明初始化（unsigned int hdrincl = inet.hdrincl）。你的 QL 增加了 v.getInitializer().getExpr() = fa，将初始化也纳入检测范围。
+
+位域判断方式
+原始约束假想了一个 StructMemberAccess.isBitField() 谓词，实际 CodeQL 中不存在。你先后尝试了 fa.getTarget().toString().regexpMatch(".*:.*")、fa.getType() instanceof BitFieldType 等，最终选择了 fa.getTarget() instanceof BitField，但该写法错误地针对了 FieldAccess 的目标对象而非字段本身。
+
+读取次数的判定
+原始约束仅通过 not exists(ReadOrWrite r | ...) 抽象表述，你的 QL 具体化为两个不同的 VariableAccess 节点（read1 和 read2）且都不是左值，精确捕捉了“多次读取同一局部变量”的模式。
+
+输出信息
+你将输出从简单的变量名扩展为包括位域表达式和函数名，便于定位。

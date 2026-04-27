@@ -1,9 +1,9 @@
 {
   "triggers": [
-    "Compiler optimization (GCC -O2) with allow-store-data-races=1",
-    "Optimizer assumes loop body executes unconditionally despite conditional guard",
-    "Multi-threaded context where shared variable is written without synchronization"
+    "Compiler optimization (GCC -O2) with -fstore-data-races or equivalent speculative write hoisting",
+    "Optimizer speculatively executes a write that is guarded (explicitly or implicitly) by a condition, making it unconditional",
+    "Multi-threaded context where a shared global, static, or heap variable is written without synchronization and without compiler barrier"
   ],
-  "vulnerable_pattern": "A write operation (e.g., assignment or pointer store) that is guarded by a condition (`if (guard) { *ptr = value; }`), where the compiler may speculatively hoist the write before the condition check, making it unconditional.",
-  "ql_constraints": "exists(ConditionalStmt cs, Expr cond, Stmt then | cs.getCondition() = cond and then = cs.getThen() and then contains a write (Assignment or PointerDereference) to a variable that is global or heap-allocated and not protected by a lock or atomic operation, and not cond is a known synchronization check (e.g., call to lock_acquire, spin_lock, etc.))"
+  "vulnerable_pattern": "A write operation (assignment or pointer store) to a shared variable that is protected from execution by a condition in one of two ways: (1) the write is inside the then-branch of an if statement (explicit guard); (2) the write is located immediately after an if statement whose then-branch ends with an early-exit statement (return / break / continue / goto), so the write is only executed when the condition is false (implicit guard). In both cases the compiler may hoist the write before the condition check, breaking the intended protection and causing a store-data-race in concurrent programs. The guarding condition must not be a known synchronization primitive (e.g., lock acquire).",
+  "ql_constraints": "exists(ConditionalStmt cs, Expr cond, Stmt guardBoundary, AssignExpr write, Stmt writeStmt | cond = cs.getCondition() and ((guardBoundary = cs.getThen() and writeStmt.getParent*() = guardBoundary) or (lastStmt(cs.getThen()) instanceof (ReturnStmt or BreakStmt or ContinueStmt or GotoStmt) and (not exists(cs.getElse()) or not lastStmt(cs.getElse()) instanceof (ReturnStmt or BreakStmt or ContinueStmt or GotoStmt)) and cs.getEnclosingFunction() = write.getEnclosingFunction() and cs.getLocation().getStartLine() < writeStmt.getLocation().getStartLine() and not write.getParent*() = cs.getThen() and not write.getParent*() = cs.getElse())) and isGlobalOrStaticOrHeap(write.getLValue()) and not isSyncCondition(cond))"
 }

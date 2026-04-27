@@ -1,1 +1,0 @@
-{"timestamp":"2026-04-20T12:09:30.549417937+08:00","source":{"id":"cli/database/create","name":"CodeQL CLI: database create"},"plaintextMessage":"A fatal error occurred: Exit status 2 from command: [make]","severity":"error","visibility":{"telemetry":false},"attributes":{"exitCode":2}}

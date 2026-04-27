@@ -1,0 +1,20 @@
+失败原因：原始 ql_constraints 既不能表达“多次读取”的漏洞模式，又因类型系统假设、不可用谓词和库依赖而彻底失效，因此与示例 C 代码完全不适配。
+解决：增加“同一函数内两次读取”约束
+使用 read1.getEnclosingFunction() = f、read2.getEnclosingFunction() = f、read1 != read2 和行序比较，确保两次不同的纯读访问发生在同一函数内。这是核心改动，直接对应编译器读合并风险。
+重定义“读”和“写”，仅依赖标准库
+isPureRead：通过排除左值赋值、自增/自减、取地址等上下文来判定纯读。
+hasWrite：通过检查左值赋值或自增/自减操作判定变量存在写入。
+不再使用不存在的 isWrite() 或自定义的 AtomicAccess。
+
+明确共享变量边界
+限定变量为全局（GlobalVariable）或静态（isStatic()），确保其为多执行上下文可能共享的真实目标。
+
+消除优化级别依赖
+完全不检查优化标志，仅从源码结构标记可疑模式，让分析独立于编译配置。
+
+简化并修复宏与位置的过滤
+使用 getLocation().getStartLine() > 0 排除无效位置（例如隐式生成的代码），并移除了易出错的 getDeclaringType() 链式调用，兼容全局和静态变量。
+
+类型安全地检测非原子、非 volatile 变量
+not v.isVolatile() 对 volatile 进行排除；
+使用正则 (\\b_Atomic\\b|\\batomic\\b|std::atomic) 匹配 C11 _Atomic、C++ std::atomic 等原子类型名称，避免依赖缺失的 AtomicAccess 类。

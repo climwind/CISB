@@ -1,45 +1,12 @@
 ---
 sourceLocationPrefix: /home/test/my-awesome-project/CISB/server/env:implicitchange
-baselineLinesOfCode: 44
+baselineLinesOfCode: 47
 unicodeNewlines: false
 columnKind: utf8
 primaryLanguage: cpp
-inProgress:
-  primaryLanguage: cpp
-  installedExtractors:
-    actions:
-     - /mnt/c/Tools/codeql/actions
-    cpp:
-     - /mnt/c/Tools/codeql/cpp
-    csharp:
-     - /mnt/c/Tools/codeql/csharp
-    csv:
-     - /mnt/c/Tools/codeql/csv
-    go:
-     - /mnt/c/Tools/codeql/go
-    html:
-     - /mnt/c/Tools/codeql/html
-    java:
-     - /mnt/c/Tools/codeql/java
-    javascript:
-     - /mnt/c/Tools/codeql/javascript
-    properties:
-     - /mnt/c/Tools/codeql/properties
-    python:
-     - /mnt/c/Tools/codeql/python
-    ruby:
-     - /mnt/c/Tools/codeql/ruby
-    rust:
-     - /mnt/c/Tools/codeql/rust
-    swift:
-     - /mnt/c/Tools/codeql/swift
-    xml:
-     - /mnt/c/Tools/codeql/xml
-    yaml:
-     - /mnt/c/Tools/codeql/yaml
 creationMetadata:
   cliVersion: 2.25.1
-  creationTime: 2026-04-20T04:09:29.374841132Z
+  creationTime: 2026-04-27T10:28:04.888533468Z
 overlayBaseDatabase: false
 overlayDatabase: false
-finalised: false
+finalised: true

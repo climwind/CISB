@@ -1,5 +1,9 @@
 {
-  "triggers": ["Compiler optimization at -O2 or higher", "Inline assembly missing 'memory' clobber", "Dead store elimination removing write that is not visible to asm"],
-  "vulnerable_pattern": "store of constant (e.g., 0) to a memory location via pointer dereference, followed by an inline assembly that implicitly reads the same memory via the same pointer, without a 'memory' clobber in the asm",
-  "ql_constraints": "exists(AssignExpr store, AsmStmt as, Expr ptr | store.getRValue().(Literal) and store.getLValue().(PointerDereference) and not as.hasGlobalMemoryClobber() and as.getAnInputOperand().getExpr() = ptr and store.getEnclosingFunction().getStmt().getChildStmt().indexOf(store) < store.getEnclosingFunction().getStmt().getChildStmt().indexOf(as))"
+  "triggers": [
+    "Compiler optimization at -O2 or higher",
+    "Inline assembly missing 'memory' clobber",
+    "Dead store elimination removing write that is not visible to asm"
+  ],
+  "vulnerable_pattern": "store of a constant to any memory location reachable from a variable, followed by passing the address of that variable (either directly or via a static inline function call) into an inline assembly that implicitly reads the same memory through a pointer operand, without a 'memory' clobber",
+  "ql_constraints": "exists(AssignExpr store, AsmStmt as, Variable v, Expr asmInput | store.getRValue() instanceof Literal and exists(VariableAccess lhsVa | lhsVa = store.getLValue().getAChild*() and lhsVa.getTarget() = v) and not as.toString().regexpMatch(\"(?i).*\\\\bmemory\\\\b.*\") and ( ( as.getEnclosingFunction() = store.getEnclosingFunction() and asmInput = as.getAChild*() and (asmInput.(AddressOfExpr).getOperand() = v.getAnAccess() or asmInput = v.getAnAccess()) and store.getLocation().getStartLine() < as.getLocation().getStartLine() ) or ( exists(Function f, Call call, Parameter p | f.isStatic() and f.isInline() and as.getEnclosingFunction() = f and asmInput = as.getAChild*() and asmInput = p.getAnAccess() and call.getTarget() = f and exists(int i | call.getArgument(i).(AddressOfExpr).getOperand() = v.getAnAccess() and f.getParameter(i) = p) and store.getEnclosingFunction() = call.getEnclosingFunction() and store.getLocation().getStartLine() < call.getLocation().getStartLine() ) ) )"
 }

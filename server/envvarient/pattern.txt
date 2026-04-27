@@ -1,5 +1,9 @@
 {
-  "triggers": ["GCC compiler with optimization enabled (e.g., -O1, -O2, -O3)", "I/O memory context (e.g., volatile void __iomem * pointers)", "Use of standard library memory functions (memset, memcpy)"],
-  "vulnerable_pattern": "Direct call to standard memory function (memset or memcpy) with I/O memory pointer as argument in inline or static functions.",
-  "ql_constraints": "FunctionCall fc where (fc.getTarget().hasName(\"memset\") or fc.getTarget().hasName(\"memcpy\")) and fc.getArgument(0).getType().toString() like \"%__iomem%\""
+  "triggers": [
+    "GCC compiler with optimization enabled (e.g., -O1, -O2, -O3)",
+    "I/O memory context (e.g., volatile void __iomem * pointers)",
+    "Aggregate zero-initialization or struct/union direct assignment"
+  ],
+  "vulnerable_pattern": "Source code that performs zero-initialization of a struct/union (e.g. = {0} or = {}) or direct assignment of a struct/union, where the involved type is __iomem-qualified or volatile. Compilers may implicitly lower these operations to memset/memcpy calls, which can break I/O memory access semantics.",
+  "ql_constraints": "exists(Variable v | (v.getType() instanceof Struct or v.getType() instanceof Union) and exists(AggregateLiteral init | init = v.getInitializer().getExpr() and (init.getNumChild() = 0 or (init.getNumChild() = 1 and init.getChild(0).toString() = \"0\"))) and (v.getType().toString().matches(\"%__iomem%\") or v.getType().isVolatile())) or exists(AssignExpr a | (a.getLValue().getType() instanceof Struct or a.getLValue().getType() instanceof Union) and (a.getLValue().getType().toString().matches(\"%__iomem%\") or a.getLValue().getType().isVolatile()))"
 }

@@ -1,0 +1,2 @@
+失败原因：原模式检测的是源代码中显式调用 memset/memcpy 的表达式（FunctionCall）。但 C 代码里根本没有这样的显式调用，只有 struct bar x = {{0}}; 和 y = x;，所以匹配不到。
+解决方案：不再在 AST 上寻找函数调用表达式 FunctionCall，而是寻找源代码层面两个会被编译器替换的操作

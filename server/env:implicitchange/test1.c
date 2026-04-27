@@ -29,27 +29,25 @@ struct c k = {0, m};
 //     return a ;
 
 // }
-
 int flag_is_changeable_p(int flag){
-    // return a ;
-    unsigned int f1, f2;
-	asm  ("pushfl\n\t"                  // this asm code load flag reg
-		      "pushfl\n\t"
-		      "popl %0\n\t"
-		      "movl %0,%1\n\t"
-		      "xorl %2,%0\n\t"
-		      "pushl %0\n\t"
-		      "popfl\n\t"
-		      "pushfl\n\t"
-		      "popl %0\n\t"
-		      "popfl\n\t"
-		      : "=&r" (f1), "=&r" (f2)
-		      : "ir" (flag)
-              );
-              
-
-	return ((f1^f2) & flag) != 0;
-
+    unsigned long long f1, f2;
+    unsigned long long flag64 = (unsigned int)flag;   // 零扩展到 64 位
+    asm  (
+        "pushfq\n\t"
+        "pushfq\n\t"
+        "popq %0\n\t"
+        "movq %0, %1\n\t"
+        "xorq %2, %0\n\t"
+        "pushq %0\n\t"
+        "popfq\n\t"
+        "pushfq\n\t"
+        "popq %0\n\t"
+        "popfq\n\t"
+        : "=&r" (f1), "=&r" (f2)
+        : "r" (flag64)
+        : "cc"             // 告知编译器标志寄存器已被修改
+    );
+    return ((f1 ^ f2) & flag) != 0;
 }
 
 __attribute__((noinline)) int have_cpuid_p(void)

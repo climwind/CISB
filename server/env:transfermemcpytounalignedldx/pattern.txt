@@ -1,9 +1,9 @@
 {
   "triggers": [
-    "Compiler optimization assumes higher data alignment (e.g., 8-byte) for memory operations",
-    "Runtime pointer alignment is insufficient (e.g., 4-byte aligned)",
-    "Architecture requires strict alignment (e.g., certain RISC architectures)"
+    "Compiler optimizes constant‑size memcpy/memmove/memset into aligned load/store instruction sequences",
+    "Destination pointer's static alignment is lower than the operation size (e.g., 4‑byte aligned target used with 8‑byte memcpy)",
+    "Architecture enforces strict alignment (e.g., ARM64, MIPS, RISC‑V without misaligned access extension)"
   ],
-  "vulnerable_pattern": "Structure definition lacks explicit alignment attributes, causing compiler to assume default or higher alignment than runtime, leading to unaligned access faults.",
-  "ql_constraints": "from StructDeclaration s where not s.hasAttribute(\"aligned\") and exists(MemoryOperation op | op.getType() = s.getType() and op.involvesUnalignedPointer())"
+  "vulnerable_pattern": "A memcpy, memmove, or memset with a compile‑time constant size writes to a destination whose pointed‑to type has a guaranteed alignment smaller than the size of the operation, leading the compiler to generate an unaligned memory access that faults at runtime.",
+  "ql_constraints": "from FunctionCall call, int size, int alignment where call.getTarget().hasName([\"memcpy\",\"memmove\",\"memset\"]) and size = call.getArgument(2).getValue().toInt() and alignment = resolveBaseAlignment(call.getArgument(0)) and size > alignment select call"
 }

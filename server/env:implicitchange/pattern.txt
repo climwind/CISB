@@ -3,6 +3,6 @@
     "编译器（如GCC）对无volatile的asm默认视为无副作用，可能优化掉重复调用或合并结果",
     "优化级别（如-O2）开启时触发该优化"
   ],
-  "vulnerable_pattern": "函数中包含 asm 语句，且未使用 volatile 或 __volatile__ 限定符",
-  "ql_constraints": "exists(AsmStmt a | a.hasAssemblyString() and not a.hasVolatile())"
+  "vulnerable_pattern": "函数中包含 asm 语句，且该 asm 语句的文本表示中不包含 volatile 或 __volatile__ 关键字",
+  "ql_constraints": "exists(AsmStmt a | a.getEnclosingFunction() = f and not a.toString().regexpMatch(\"(?s).*\\\\bvolatile\\\\b.*\"))"
 }
