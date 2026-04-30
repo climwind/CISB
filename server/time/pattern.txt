@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "编译器对 memcmp 调用内联或优化，允许基于数据内容的提前返回",
+    "使用非恒定时间比较函数（如 memcmp）进行加密摘要验证"
+  ],
+  "vulnerable_pattern": "memcmp(security_sensitive_data, expected_data, size)",
+  "ql_constraints": "exists(ArrayExpr a1, ArrayExpr a2, Expr size | a1 = memcmp.getArgument(0) and a2 = memcmp.getArgument(1) and size = memcmp.getArgument(2) and memcmp.getTarget().getName() = \"memcmp\") and memcmp.getEnclosingFunction().(Function).getReturnType().(IntType) and security_sensitive_context(memcmp)"
+}

@@ -1,0 +1,7 @@
+{
+  "triggers": [
+    "GCC 4.1.x and later with optimization enabled (e.g., -O2, -Os) performing dead code elimination on empty loops"
+  ],
+  "vulnerable_pattern": "for (int i = 0; i <= constant; i++);  // loop body is empty (only semicolon), no side effects in loop header or body",
+  "ql_constraints": "exists(ForStmt f | f.getBody() instanceof EmptyStmt and not exists(Expr e | e.getEnclosingStmt() = f and e.hasSideEffect()) and f.getInit() instanceof Declaration and f.getCondition().(BinaryExpr).getOperator() instanceof LessThanOrEqualOp and f.getUpdate() instanceof UnaryIncExpr)"
+}

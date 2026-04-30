@@ -116,7 +116,7 @@ ql_constraints: "... and the result is used in a Condition that checks for **var
 修改：把 __builtin_assume_aligned(ptr, n) （n>1）也作为源，因为它会让编译器错误地假定指针已经对齐，从而在后续经过字节宏时同样会引入字对齐指令。
 
 13、DB transfer mem load to reg load
-未实现
+根本原因在于 被分析的 memset 函数定义不在 CodeQL 的可见范围内
 
 14、condItional load->non-condItional load
 
@@ -195,22 +195,23 @@ ql_constraints: "... and the result is used in a Condition that checks for **var
 修改：严格限定为“对 ≥8 字节无符号整数/单字段结构体指针进行显式类型截断后再赋值”，不再泛指所有结构体赋值。
 
 24、data race
-未完成
+fa_write_or_read.getQualifier() = fa_read.getQualifier()
+永远为假。查询要求限定符必须是同一个语法树节点，这在实际代码中不可能发生——读取和写入必然是不同的表达式出现。因此整个模式无法匹配任何结果。
 
 25、DSE-memset
 无问题
 
 26、padding copied to user space
-未完成
+QL约束中赋值语句左值的类型被错误地限定为目标结构体类型本身，而实际漏洞是通过对结构体成员逐字段赋值触发的，成员的类型并非结构体类型。
 
 27、part of union not init
-未完成
+模式仅针对声明时的聚合初始化语法（UnionInit），而C代码使用的是运行时函数调用与成员赋值，不存在这样的初始化表达式，因而QL约束完全无法捕获。
 
 28、time side channel
-未完成
+QL 约束强制要求 memcmp 的前两个参数必须是 ArrayExpr（数组下标表达式），而实际漏洞代码中传递给 memcmp 的参数是指向数组的指针（由数组成员退化而成），语法节点类型不吻合，导致模式无法捕获该调用。
 
 29、noop loop for time order(concurrency)
-未完成
+QL约束对for循环的语法形式做了过于严格的限定，而实际代码采用了稍有不同的写法，导致无法触发检测规则。
 
 30、switch jump table
-未完成
+QL约束要求编译环境必须定义宏 CONFIG_RETPOLINE，而所提供的C代码只是一个独立的、不包含任何宏定义的用户程序，无法满足该条件。

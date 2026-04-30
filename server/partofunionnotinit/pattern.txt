@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "Compiler optimization discards one initializer when multiple designators target different union members",
+    "GCC 4.8 and 4.9 specific optimization behavior for union initialization"
+  ],
+  "vulnerable_pattern": "union { ... } var = { .memberA.fieldX = value1, .memberB.fieldY = value2 }; where memberA and memberB are distinct union members",
+  "ql_constraints": "exists(UnionInit init | init.getNumInitializers() >= 2 and exists(Initializer i1, Initializer i2 | i1 = init.getInitializer(_) and i2 = init.getInitializer(_) and i1 != i2 and (i1.getField().getTopLevelUnionMember() != i2.getField().getTopLevelUnionMember())))"
+}

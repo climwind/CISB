@@ -1,49 +1,42 @@
-    "9bc4f28af75a91aea0ae383f50b0a430c4509303": {
-        "id": "9bc4f28af75a91aea0ae383f50b0a430c4509303",
-        "year": "2018",
-        "message": "x86/mm: Use WRITE_ONCE() when setting PTEs\n\nWhen page-table entries are set, the compiler might optimize their\nassignment by using multiple instructions to set the PTE. This might\nturn into a security hazard if the user somehow manages to use the\ninterim PTE. L1TF does not make our lives easier, making even an interim\nnon-present PTE a security hazard.\n\nUsing WRITE_ONCE() to set PTEs and friends should prevent this potential\nsecurity hazard.\n\nI skimmed the differences in the binary with and without this patch. The\ndifferences are (obviously) greater when CONFIG_PARAVIRT=n as more\ncode optimizations are possible. For better and worse, the impact on the\nbinary with this patch is pretty small. Skimming the code did not cause\nanything to jump out as a security hazard, but it seems that at least\nmove_soft_dirty_pte() caused set_pte_at() to use multiple writes.\n\nLink: https://lkml.kernel.org/r/20180902181451.80520-1-namit@vmware.com",
+    "a9d57ef15cbe327fe54416dd194ee0ea66ae53a4": {
+        "id": "a9d57ef15cbe327fe54416dd194ee0ea66ae53a4",
+        "year": "2019",
+        "message": "x86/retpolines: Disable switch jump tables when retpolines are enabled\n\nCommit ce02ef06fcf7 (\"x86, retpolines: Raise limit for generating indirect\ncalls from switch-case\") raised the limit under retpolines to 20 switch\ncases where gcc would only then start to emit jump tables, and therefore\neffectively disabling the emission of slow indirect calls in this area.\n\nAfter this has been brought to attention to gcc folks [0], Martin Liska\nhas then fixed gcc to align with clang by avoiding to generate switch jump\ntables entirely under retpolines. This is taking effect in gcc starting\nfrom stable version 8.4.0. Given kernel supports compilation with older\nversions of gcc where the fix is not being available or backported anymore,\nwe need to keep the extra KBUILD_CFLAGS around for some time and generally\nset the -fno-jump-tables to align with what more recent gcc is doing\nautomatically today.\n\nMore than 20 switch cases are not expected to be fast-path critical, but\nit would still be good to align with gcc behavior for versions < 8.4.0 in\norder to have consistency across supported gcc versions. vmlinux size is\nslightly growing by 0.27% for older gcc. This flag is only set to work\naround affected gcc, no change for clang.\n\n  [0] https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86952\n\nLink: https://lkml.kernel.org/r/20190325135620.14882-1-daniel@iogearbox.net",
         "patches": {
-            "arch/x86/include/asm/pgtable.h": "@@ -1195,7 +1195,7 @@ static inline pmd_t pmdp_establish(struct vm_area_struct *vma,\n \t\treturn xchg(pmdp, pmd);\n \t} else {\n \t\tpmd_t old = *pmdp;\n-\t\t*pmdp = pmd;\n+\t\tWRITE_ONCE(*pmdp, pmd);\n \t\treturn old;\n \t}\n }",
-            "arch/x86/include/asm/pgtable_64.h": "@@ -55,15 +55,15 @@ struct mm_struct;\n void set_pte_vaddr_p4d(p4d_t *p4d_page, unsigned long vaddr, pte_t new_pte);\n void set_pte_vaddr_pud(pud_t *pud_page, unsigned long vaddr, pte_t new_pte);\n \n-static inline void native_pte_clear(struct mm_struct *mm, unsigned long addr,\n-\t\t\t\t    pte_t *ptep)\n+static inline void native_set_pte(pte_t *ptep, pte_t pte)\n {\n-\t*ptep = native_make_pte(0);\n+\tWRITE_ONCE(*ptep, pte);\n }\n \n-static inline void native_set_pte(pte_t *ptep, pte_t pte)\n+static inline void native_pte_clear(struct mm_struct *mm, unsigned long addr,\n+\t\t\t\t    pte_t *ptep)\n {\n-\t*ptep = pte;\n+\tnative_set_pte(ptep, native_make_pte(0));\n }\n \n static inline void native_set_pte_atomic(pte_t *ptep, pte_t pte)\n@@ -73,7 +73,7 @@ static inline void native_set_pte_atomic(pte_t *ptep, pte_t pte)\n \n static inline void native_set_pmd(pmd_t *pmdp, pmd_t pmd)\n {\n-\t*pmdp = pmd;\n+\tWRITE_ONCE(*pmdp, pmd);\n }\n \n static inline void native_pmd_clear(pmd_t *pmd)\n@@ -109,7 +109,7 @@ static inline pmd_t native_pmdp_get_and_clear(pmd_t *xp)\n \n static inline void native_set_pud(pud_t *pudp, pud_t pud)\n {\n-\t*pudp = pud;\n+\tWRITE_ONCE(*pudp, pud);\n }\n \n static inline void native_pud_clear(pud_t *pud)\n@@ -137,13 +137,13 @@ static inline void native_set_p4d(p4d_t *p4dp, p4d_t p4d)\n \tpgd_t pgd;\n \n \tif (pgtable_l5_enabled() || !IS_ENABLED(CONFIG_PAGE_TABLE_ISOLATION)) {\n-\t\t*p4dp = p4d;\n+\t\tWRITE_ONCE(*p4dp, p4d);\n \t\treturn;\n \t}\n \n \tpgd = native_make_pgd(native_p4d_val(p4d));\n \tpgd = pti_set_user_pgtbl((pgd_t *)p4dp, pgd);\n-\t*p4dp = native_make_p4d(native_pgd_val(pgd));\n+\tWRITE_ONCE(*p4dp, native_make_p4d(native_pgd_val(pgd)));\n }\n \n static inline void native_p4d_clear(p4d_t *p4d)\n@@ -153,7 +153,7 @@ static inline void native_p4d_clear(p4d_t *p4d)\n \n static inline void native_set_pgd(pgd_t *pgdp, pgd_t pgd)\n {\n-\t*pgdp = pti_set_user_pgtbl(pgdp, pgd);\n+\tWRITE_ONCE(*pgdp, pti_set_user_pgtbl(pgdp, pgd));\n }\n \n static inline void native_pgd_clear(pgd_t *pgd)",
-            "arch/x86/mm/pgtable.c": "@@ -269,7 +269,7 @@ static void mop_up_one_pmd(struct mm_struct *mm, pgd_t *pgdp)\n \tif (pgd_val(pgd) != 0) {\n \t\tpmd_t *pmd = (pmd_t *)pgd_page_vaddr(pgd);\n \n-\t\t*pgdp = native_make_pgd(0);\n+\t\tpgd_clear(pgdp);\n \n \t\tparavirt_release_pmd(pgd_val(pgd) >> PAGE_SHIFT);\n \t\tpmd_free(mm, pmd);\n@@ -494,7 +494,7 @@ int ptep_set_access_flags(struct vm_area_struct *vma,\n \tint changed = !pte_same(*ptep, entry);\n \n \tif (changed && dirty)\n-\t\t*ptep = entry;\n+\t\tset_pte(ptep, entry);\n \n \treturn changed;\n }\n@@ -509,7 +509,7 @@ int pmdp_set_access_flags(struct vm_area_struct *vma,\n \tVM_BUG_ON(address & ~HPAGE_PMD_MASK);\n \n \tif (changed && dirty) {\n-\t\t*pmdp = entry;\n+\t\tset_pmd(pmdp, entry);\n \t\t/*\n \t\t * We had a write-protection fault here and changed the pmd\n \t\t * to to more permissive. No need to flush the TLB for that,\n@@ -529,7 +529,7 @@ int pudp_set_access_flags(struct vm_area_struct *vma, unsigned long address,\n \tVM_BUG_ON(address & ~HPAGE_PUD_MASK);\n \n \tif (changed && dirty) {\n-\t\t*pudp = entry;\n+\t\tset_pud(pudp, entry);\n \t\t/*\n \t\t * We had a write-protection fault here and changed the pud\n \t\t * to to more permissive. No need to flush the TLB for that,"
+            "arch/x86/Makefile": "@@ -219,8 +219,12 @@ ifdef CONFIG_RETPOLINE\n   # Additionally, avoid generating expensive indirect jumps which\n   # are subject to retpolines for small number of switch cases.\n   # clang turns off jump table generation by default when under\n-  # retpoline builds, however, gcc does not for x86.\n-  KBUILD_CFLAGS += $(call cc-option,--param=case-values-threshold=20)\n+  # retpoline builds, however, gcc does not for x86. This has\n+  # only been fixed starting from gcc stable version 8.4.0 and\n+  # onwards, but not for older ones. See gcc bug #86952.\n+  ifndef CONFIG_CC_IS_CLANG\n+    KBUILD_CFLAGS += $(call cc-option,-fno-jump-tables)\n+  endif\n endif\n \n archscripts: scripts_basic"
         }
     }
-    [Generated summary]
-**Title**: Prevent interim PTE states by enforcing atomic writes with WRITE_ONCE().
+[Generated summary]
+**Title**: Disable switch jump tables for gcc<8.4.0 in retpoline builds to prevent indirect call vulnerabilities.
 
-**Issue**: Compiler optimization could split PTE assignments into multiple instructions, creating transient non-present entries that speculative execution (e.g., L1TF) might exploit.
+**Issue**: Gcc versions prior to 8.4.0 generate switch jump tables (indirect calls) in retpoline builds, creating speculative execution attack vectors that retpolines are meant to mitigate, while clang and newer gcc avoid this by default.
 
-**Tag**: security fix
+**Tag**: security hardening, compiler flag fix
 
-**Purpose**: Replace direct assignments to page-table entries with WRITE_ONCE() to ensure atomic writes and eliminate interim states.
+**Purpose**: To add `-fno-jump-tables` to the build flags for gcc when retpolines are enabled, ensuring jump tables are not generated and eliminating unnecessary indirect jumps that could be exploited.
 
 ---
 
 ### Step-by-Step Analysis:
 
-1. **Key Variables/Functionality**: Direct assignments to page-table entry pointers (`*ptep`, `*pmdp`, `*pudp`, etc.) in x86 MMU code. These are used to set or clear PTEs, PMDs, PUDs, etc.
+1. **Key Variables/Functionality**: The change is in the build system (`arch/x86/Makefile`), modifying `KBUILD_CFLAGS` to include `-fno-jump-tables` for gcc (non-clang) when `CONFIG_RETPOLINE` is defined, controlling switch statement code generation.
 
-2. **Compiler Behavior**: The compiler may optimize the assignment of a large structure (like a PTE) by writing it in multiple instructions (e.g., separate writes for different parts of the structure). This is a permissible optimization since the C standard does not guarantee atomicity for such assignments.
+2. **Compiler Behavior**: Gcc (before 8.4.0) by default generates jump tables for switch statements with many cases (more than 20) even in retpoline builds, creating indirect calls. Clang and gcc>=8.4.0 disable jump tables in retpoline builds by default or via fix.
 
-3. **Pre/Post Compilation**: Before compilation, the code assumes the assignment occurs atomically. After compilation, without WRITE_ONCE(), the assignment might be split, creating intermediate states where the PTE is partially written (e.g., non-present but with other fields set). With WRITE_ONCE(), the compiler is forced to treat the assignment as a single, atomic write.
+3. **Pre/Post Compilation**: Without the flag, compiled code contains indirect jumps via jump tables for large switches, introducing potential speculative execution attack surfaces. With the flag, compiled code uses alternative (e.g., conditional branch) methods for switch dispatch, avoiding indirect calls.
 
-4. **Security Implications**: Interim non-present PTEs could be speculatively accessed by the CPU, potentially leaking data via side-channel attacks like L1TF. This is an indirect security implication related to speculative execution.
+4. **Security Implications**: Indirect jumps in retpoline builds can bypass retpoline mitigations or are less efficient, potentially leaving the kernel vulnerable to speculative execution attacks (e.g., Spectre-v2). Disabling jump tables removes these indirect jumps, enhancing security.
 
 ---
 
-1. Did compiler accept the kernel code and compile it successfully?  
-   [yes] The original code is valid C and compiles without errors.
+1. **Yes.** The compiler accepted the kernel code and compiled it successfully, generating jump tables as per its default optimization.
 
-2. Is the issuer reporting a runtime bug, where previous code semantic assumption was damaged during optimization or default behavior?  
-   [yes] The assumption of atomic PTE assignment is broken by compiler optimization, leading to transient states.
+2. **Yes.** The issuer reports a runtime security issue where the compiler's default behavior (generating jump tables) in retpoline builds leads to indirect calls vulnerable to speculative execution, damaging the security semantic assumption of retpoline builds.
 
-3. Without optimization or default behavior, will the difference in Step 3 disappear?  
-   [yes] If the compiler does not split the assignment, no interim state occurs.
+3. **Yes.** Without the optimization (by adding `-fno-jump-tables`), the compiler will not generate jump tables, and the indirect jumps will not be present, eliminating the difference.
 
-4. Did the program observable behavior change after optimization or default behavior during execution?  
-   [yes] The presence of interim PTEs changes the system state observable by speculative execution.
+4. **Yes.** The program observable behavior changes during execution: the presence of indirect jumps vs. conditional branches alters performance and speculative execution vulnerability, though functional output remains unchanged.
 
-5. Does this change have direct or indirect security implications in the context?  
-   [yes] Interim PTEs could be exploited for information disclosure via speculative side channels.
+5. **Yes.** This change has direct security implications: indirect jumps can be exploited for speculative execution attacks (e.g., Spectre-v2), leading to potential information disclosure or control flow diversion.
 
 **CISB Status**: CISB
