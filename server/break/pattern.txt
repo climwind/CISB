@@ -1,8 +1,0 @@
-{
-  "triggers": [
-    "Compiler optimization (e.g., -O2) splits multi-byte assignment into multiple store instructions",
-    "Assignment target is a non-volatile pointer to a structure type (e.g., pte_t, pmd_t, pud_t)"
-  ],
-  "vulnerable_pattern": "*ptr = val;  where ptr is a pointer to a struct type that must be updated atomically (e.g., page table entry)",
-  "ql_constraints": "exists(ExprAssign e | e.getLValue() instanceof PointerDereference and e.getRValue() instanceof StructExpr and not e.isFromMacro(\"WRITE_ONCE\") and not e.getLValue().getUnspecifiedType() instanceof VolatileType)"
-}

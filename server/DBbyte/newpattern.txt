@@ -1,0 +1,13 @@
+{
+  "triggers": [
+    "存在外部声明(extern)的整型变量未指定__aligned(1)等显式对齐属性",
+    "代码中使用了__builtin_assume_aligned并传递大于1的对齐参数",
+    "这些变量或假设对齐的结果作为指针，传递给了get_unaligned_le* / put_unaligned_le*等字节级访问函数"
+  ],
+  "vulnerable_pattern": "将可能未对齐的指针（源自extern未标记aligned的整型变量，或__builtin_assume_aligned强制对齐后的结果）传递给字节级读/写宏，且未经(void*)或(char*)显式转换标注未对齐",
+  "ql_constraints": "exists(UnalignedAccessCall call | call.getPointerArgument() = pointer) and "
+  "exists(UnalignedRiskFlow::PathNode source, UnalignedRiskFlow::PathNode sink | "
+  "UnalignedRiskFlow::flowPath(source, sink) and sink.getNode().asExpr() = pointer) and "
+  "not (pointer.getConversion() exists Cast c | c.getType().(PointerType).getBaseType() instanceof VoidType or "
+  "c.getType().(PointerType).getBaseType() instanceof CharType)"
+}

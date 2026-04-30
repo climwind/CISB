@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "编译器优化（如GCC 4.1.2）可能将缺乏volatile的重复cpuid asm视为无副作用并合并/消除，即使代码期望它们返回不同结果",
+    "编译器优化可能将访问非volatile全局状态的函数视为纯函数，并在参数相同时消除重复调用"
+  ],
+  "vulnerable_pattern": "在同一函数内：1) 存在两个包含cpuid指令的inline asm且都缺少volatile，它们内容相同、相距不超过12行，且第二个asm附近有对输出寄存器(eax/ebx/ecx/edx)的比较逻辑；或 2) 两次调用同一函数且实参完全相同，被调函数读写非volatile全局变量，且两次调用间缺少volatile memory屏障",
+  "ql_constraints": "exists(AsmStmt a1, AsmStmt a2 | lacksVolatileQualifier(a1) and lacksVolatileQualifier(a2) and isNearbyRepeatedCpuid(a1,a2) and hasNearbyOutputComparison(a2)) or exists(FunctionCall c1, FunctionCall c2 | isRepeatedPureLikeCall(c1, c2))"
+}

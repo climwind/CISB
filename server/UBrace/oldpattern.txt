@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "Compiler optimization (e.g., -O2) allows store splitting/reordering for non-atomic assignments",
+    "Concurrent lockless reader observes transient partial state of a shared variable"
+  ],
+  "vulnerable_pattern": "shared_ptr = (type *)(ptr_val + CONST);  // where ptr_val is a pointer and CONST is an integer bitflag, and the assignment is not protected by WRITE_ONCE or atomic store",
+  "ql_constraints": "exists(Assignment a | a.getLValue() = fieldAccess(p, \"mapping\") and a.getRValue() = (AddExpr(ptrExpr, constExpr)) and not a.isAtomic() and not a.getParent() instanceof VolatileWrite)"
+}

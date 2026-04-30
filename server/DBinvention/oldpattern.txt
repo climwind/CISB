@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "GCC 4.5 default alignment changed to 32 bytes",
+    "Structure array traversal assumes 4-byte alignment without explicit alignment attribute"
+  ],
+  "vulnerable_pattern": "Declaration of structure instances without explicit alignment attribute (e.g., __attribute__((aligned(4)))), where later array traversal uses pointer arithmetic assuming fixed sizeof-based step that differs from compiler-default alignment.",
+  "ql_constraints": "exists(StructDecl d | not exists(Attribute a | a.getName() = \"aligned\" and a.getArgument() = 4) and exists(ArrayDecl arr | arr.getElementType() = d.getType()) and exists(ForStmt | exists(PointerAddExpr p | p.getBase().getType() = d.getType().pointer() and p.getOffset() instanceof Literal and p.getOffset().getValue() = d.getType().getSize())))"
+}

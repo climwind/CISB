@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "Switch-based size dispatch with multiple case labels performing pointer dereference assignments",
+    "Missing break statements in the switch allowing fall-through"
+  ],
+  "vulnerable_pattern": "switch (size) {\n  case 1: val = *(const unsigned char *)ptr;\n  case 2: val = *(const unsigned short *)ptr;\n  case 4: val = *(const unsigned int *)ptr;\n  case 8: val = *(const unsigned long long *)ptr;\n}",
+  "ql_constraints": "exists(SwitchStmt sw, AssignExpr a1, AssignExpr a2, PointerDereferenceExpr d1, PointerDereferenceExpr d2 | a1 != a2 and d1 != d2 and a1.getRValue() = d1 and a2.getRValue() = d2 and a1.getLValue().toString() = a2.getLValue().toString() and a1.getEnclosingStmt().getParentStmt*() = sw and a2.getEnclosingStmt().getParentStmt*() = sw and not exists(BreakStmt b | b.getParentStmt*() = sw))"
+}

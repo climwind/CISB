@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    "Clang with optimization enabling UB assumption (e.g., -O2)",
+    "Member offset > 0 (non-first field)",
+    "Pointer from container_of or similar can be NULL"
+  ],
+  "vulnerable_pattern": "isNonNull(&ptr->member) used as loop condition, where offsetof(typeof(*ptr), member) > 0. Compiler treats as always true due to pointer arithmetic UB.",
+  "ql_constraints": "exists(Field f, Expr e | e = MemberAddressAccess(anyPointer, f) and f.getOffset() > 0 and exists(NullCheck nc | nc.getCheckedExpr() = e and nc.isChecksNull() = false) and (e.getParent*() instanceof LoopCondition))"
+}

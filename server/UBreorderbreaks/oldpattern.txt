@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "编译器指令重排优化（如GCC -O2及以上）",
+    "未使用原子操作或锁保护共享变量写操作"
+  ],
+  "vulnerable_pattern": "两个对共享结构体成员的无锁写操作，顺序敏感；其中一个赋值为NULL（或0），另一个赋值非NULL值；无同步原语",
+  "ql_constraints": "exists(StructFieldAccess f1, StructFieldAccess f2 | f1 = f2.(StructFieldAccess).* and f2 = f1.(StructFieldAccess).* and f1 != f2 and (f1.getExpr().(AssignExpr).getRValue().(Literal).getValue() = \"NULL\" or f1.getExpr().(AssignExpr).getRValue().(Literal).getValue() = \"0\") and not exists(LockExpr | covers(f1) and covers(f2)))"
+}

@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "在多函数协作场景下，编译器优化（-O2）可能将共享内存复制与后续依赖该数据的标志位提取重排序",
+    "硬件并发写入状态消息与驱动跨函数读取之间存在竞态，且缺少必要的内存屏障"
+  ],
+  "vulnerable_pattern": "调用者函数中先调用一个从共享内存执行 memcpy 的生产者函数，再调用另一个对同一数据执行右移操作（提取就绪/标志位）的消费者函数，且两次调用之间未插入任何内存屏障（如 rmb、smp_mb 等），导致可能读取到尚未完成同步的旧数据。",
+  "ql_constraints": "exists(FunctionCall prodCall, FunctionCall consCall, Function caller, Expr argProd, Expr argCons |\n  isSharedMemcpyProducer(prodCall.getTarget(), _) and\n  functionExtractsReadyBit(consCall.getTarget(), _) and\n  caller = prodCall.getEnclosingFunction() and\n  caller = consCall.getEnclosingFunction() and\n  prodCall.getLocation().getStartLine() < consCall.getLocation().getStartLine() and\n  argProd = prodCall.getAnArgument() and\n  argCons = consCall.getAnArgument() and\n  sameObject(argProd, argCons) and\n  not exists(FunctionCall barrier |\n    barrier.getEnclosingFunction() = caller and\n    isBarrierLikeCall(barrier) and\n    barrier.getLocation().getStartLine() > prodCall.getLocation().getStartLine() and\n    barrier.getLocation().getStartLine() < consCall.getLocation().getStartLine()\n  )\n)"
+}

@@ -1,0 +1,12 @@
+{
+    "triggers": [
+        "GCC -fdelete-null-pointer-checks optimization enabled at -O2/-O3/-Os",
+        "Inline asm uses memory operand constraint (e.g., \"o\", \"m\", \"=m\", \"+o\") with an expression that dereferences a pointer"
+    ],
+    "vulnerable_pattern": "In inline asm, a memory constraint operand dereferences a pointer (e.g., *(type *)(ptr) or *ptr). The compiler infers the pointer is non-null and later eliminates any explicit null check on the same pointer, enabling a path where the pointer is actually null.",
+    "ql_constraints": [
+        "exists(AsmStmt asm, AsmOperand memOp, PointerDereferenceExpr deref | memOp = asm.getAnOperand() and memOp.toString().regexpMatch(\"[mo]\") and memOp.getExpr() = deref and exists(Expr base | base = deref.getOperand() and base.getAChild*() = ptr.getAnAccess()))",
+        "exists(IfStmt ifStmt | asm.getEnclosingFunction() = ifStmt.getEnclosingFunction() and (ifStmt.getCondition() = ptr.getAnAccess() or ifStmt.getCondition().(NotExpr).getOperand() = ptr.getAnAccess() or exists(BinaryOperation cmp | ifStmt.getCondition() = cmp and cmp.getOperator() in [\"==\", \"!=\"] and ((cmp.getLeftOperand() = ptr.getAnAccess() and isNullConstant(cmp.getRightOperand())) or (cmp.getRightOperand() = ptr.getAnAccess() and isNullConstant(cmp.getLeftOperand()))))))",
+        "asm.getLocation().getEndLine() < ifStmt.getLocation().getStartLine()"
+    ]
+}

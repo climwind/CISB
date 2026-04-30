@@ -1,9 +1,0 @@
-{
-  "triggers": [
-    "gcc-7 or later with -O2 or higher optimization",
-    "extern declaration of a 32-bit integer type without explicit alignment attribute",
-    "variable is placed at an unaligned address by the linker"
-  ],
-  "vulnerable_pattern": "extern __le32 var; // missing __aligned(1) attribute; subsequent access via get_unaligned_le32() or similar macro that relies on byte-wise reads; compiler may optimize to word-wise load causing alignment fault",
-  "ql_constraints": "exists(Type t | t hasAlignment() > 1 and exists(Expr e | e.getEnclosingFunction() = getFunction() and e.getType() = t and e.(VariableAccess).getTarget().(ExternalVariable).hasAttribute("aligned").none() and any(Expr u | u.(Call).getStaticCallee().getName() = "get_unaligned_le32" and u.getArgument(0).(VariableAccess).getTarget() = e.(VariableAccess).getTarget()) )) and exists(OptimizationLevel o | o.getValue() >= 2)"
-}

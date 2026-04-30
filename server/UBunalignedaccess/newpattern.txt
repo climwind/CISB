@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "编译器优化（如 -O2）启用严格别名和指针对齐假设，导致未对齐访问产生未定义行为",
+    "代码将低对齐指针（void* 或基类型大小为 1 字节的指针，如 char*）强制转换为带有更高对齐需求的指针类型，并立即解引用该转换结果"
+  ],
+  "vulnerable_pattern": "对由 void* 或大小为 1 字节的指针类型强制转换得到的更高对齐类型指针进行解引用（如 *(int*)p_void、*(struct large*)char_ptr），该指针所指向的实际地址可能无法满足目标类型的对齐要求",
+  "ql_constraints": "exists(PointerDereferenceExpr deref, Cast cast | cast.getFile() = deref.getFile() and cast.getLocation().getStartLine() = deref.getLocation().getStartLine() and cast.getLocation().getStartColumn() >= deref.getLocation().getStartColumn() and cast.getLocation().getEndColumn() <= deref.getLocation().getEndColumn() and exists(PointerType srcPtrTy, PointerType dstPtrTy | cast.getExpr().getType() = srcPtrTy and cast.getType() = dstPtrTy and (srcPtrTy.getBaseType().toString().matches(\"%void%\") or srcPtrTy.getBaseType().getSize() = 1) and dstPtrTy.getBaseType().getSize() > 1))"
+}

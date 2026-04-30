@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    "gcc 4.5 编译器",
+    "启用优化的编译选项（如 -O2）",
+    "内联汇编中缺少 memory clobber 导致编译器允许重排序"
+  ],
+  "vulnerable_pattern": "内联汇编语句 asm(\"mrc p15, 0, %0, c0, ext_reg\" : \"=r\"(__val) : : \"cc\")，其中 clobber 列表中缺少 \"memory\"，且该语句位于条件守卫（如 is_smp() 测试）之后，但编译器可能将其重排序到条件之前。",
+  "ql_constraints": "exists(AsmStmt a | a.getOutputs().get(0).getOperandName() = \"=r\" and not a.getClobbers().includes(\"memory\") and exists(ConditionalStmt cs | cs.getCondition().* | a.getEnclosingStmt() = cs.getThen() or a.getEnclosingStmt() = cs.getElse())))  // 注意：此处仅为简化示例，实际 CodeQL 需基于 AST 位置关系。"
+}

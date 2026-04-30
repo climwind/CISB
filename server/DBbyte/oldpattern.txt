@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    "编译器版本gcc-7或更高且优化级别-O2及以上",
+    "变量声明未指定__aligned(1)等显式对齐属性",
+    "变量为外部(extern)声明且类型为整型(如__le32)"
+  ],
+  "vulnerable_pattern": "extern <integral_type> <variable_name>;  // 缺少对齐属性，编译器假设自然对齐",
+  "ql_constraints": "exists(Variable v | v.isExtern() and v.getType() instanceof IntegralType and v.hasNoAttribute('aligned')) and exists(Expr e | e.accesses(v) and e.(FunctionCall).getName() = 'get_unaligned_le32')"
+}

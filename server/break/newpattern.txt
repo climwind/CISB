@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "Compiler may split a wide store into multiple smaller stores when writing through a narrowed pointer",
+    "Observability by concurrent readers (e.g., lockless page-table walk) may see a torn intermediate value"
+  ],
+  "vulnerable_pattern": "A pointer to a ≥8-byte unsigned integral type (or a single-field struct wrapping such a type) is explicitly cast to a pointer to a smaller integral type, and then dereferenced for assignment without WRITE_ONCE(). The store can be decomposed by the compiler into multiple narrow instructions, breaking atomicity.",
+  "ql_constraints": "exists(MultiByteToSmallerCast cast, AssignExpr assign | DataFlow::localFlow(DataFlow::exprNode(cast), DataFlow::exprNode(base)) and ( lhs = assign.getLValue() and (lhs.(ArrayExpr).getArrayBase() = base or lhs.(PointerDereferenceExpr).getOperand() = base or ... ) ) and not assign.toString().matches(\"WRITE_ONCE\") and not lhs.getType().isVolatile() and not exists(AssignExpr direct | direct.getLValue().(PointerDereferenceExpr).getOperand() = cast.getExpr() and direct = assign) )"
+}

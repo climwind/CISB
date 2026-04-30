@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    "Undefined behavior: left shift by amount >= width of signed integer type",
+    "Compiler optimization may assume shift result is non-zero, enabling removal of subsequent null check",
+    "Optimization level -O2 or higher (common in kernel builds)"
+  ],
+  "vulnerable_pattern": "EXPR = 1 << SHIFT_AMOUNT; isNull(EXPR)",
+  "ql_constraints": "exists(AssignExpr assign | assign.getRValue().(LeftShiftOperation).getLeftOperand().getValue() = 1 and assign.getTarget() = ?) and exists(ConditionExpr cond | cond = any(EqualsExpr e | e.getLeftOperand() = assign.getTarget() and e.getRightOperand().getValue() = 0) or cond = any(NotExpr n | n.getOperand() = assign.getTarget()))"
+}

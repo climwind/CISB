@@ -1,8 +1,0 @@
-{
-  "triggers": [
-    "Compiler with optimization enabled (e.g., -O2) assumes pointer is properly aligned for its type",
-    "Architecture where unaligned memory access causes traps or data corruption"
-  ],
-  "vulnerable_pattern": "指针强制转换为具有对齐要求的类型指针并解引用：`*(T*)p` 或 `le*_to_cpup((T*)p)` 等，其中T的对齐要求大于char的对齐要求",
-  "ql_constraints": "exists(PointerDereferenceExpr deref, Cast cast, PointerType srcPtrTy, PointerType dstPtrTy | cast.getFile() = deref.getFile() and cast.getLocation().getStartLine() = deref.getLocation().getStartLine() and cast.getLocation().getStartColumn() >= deref.getLocation().getStartColumn() and cast.getLocation().getEndColumn() <= deref.getLocation().getEndColumn() and cast.getExpr().getType() = srcPtrTy and cast.getType() = dstPtrTy and (srcPtrTy.getBaseType().toString().matches(\"%void%\") or srcPtrTy.getBaseType().getSize() = 1) and dstPtrTy.getBaseType().getSize() > 1)"
-}

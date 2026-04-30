@@ -1,0 +1,11 @@
+{
+  "triggers": [
+    "Compiler optimizations (e.g., -O1 and above) that replace constant-fill loops with memset/memcpy builtins",
+    "Inline asm contains 'cc' clobber but lacks 'memory', allowing it to be reordered across a guard",
+    "Loop body that assigns a constant to a global array element"
+  ],
+  "vulnerable_pattern": "Two patterns are detected:\n"
+    + "1) An inline asm statement that clobbers 'cc' but does not declare 'memory', and appears inside the then-branch of an if statement whose condition calls is_smp(). The compiler may move the asm above the guard, leading to execution on unsupported SMP configurations.\n"
+    + "2) A loop (for, while, do-while) whose body contains an assignment where the left-hand side is a global array element and the right-hand side is a constant literal. The optimizer can rewrite the loop into a memset or memcpy call, which may not be available or safe in certain environments (e.g., kernel code).",
+  "ql_constraints": "exists(AsmStmt asm | hasCcWithoutMemoryClobber(asm) and asmInsideIsSmpThenBranch(asm, _)) or exists(Stmt loop, AssignExpr a | isBuiltinReplaceCandidate(loop, a))"
+}

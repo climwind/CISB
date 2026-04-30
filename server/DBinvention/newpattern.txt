@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "Multiple variables of the same struct type are placed into a custom section (__attribute__((section(...)))) with inconsistent alignment requirements.",
+    "One variable has an explicit __attribute__((aligned(N))) attribute while another of the same type in the same section lacks it, or uses a different N."
+  ],
+  "vulnerable_pattern": "Declaration of two or more variables of the same structure type inside the same custom section, where the effective alignment (derived from explicit aligned attribute or default alignment) differs. This causes unpredictable padding between objects in the section and invalidates any code that relies on fixed sizeof stride to iterate over the objects.",
+  "ql_constraints": "exists(Struct s, Variable v1, Variable v2 | v1 != v2 and v1.getType().getUnderlyingType() = s and v2.getType().getUnderlyingType() = s and exists(string sec | sec = getSectionName(v1) and sec = getSectionName(v2)) and getEffectiveAlignment(v1) != getEffectiveAlignment(v2))"
+}

@@ -1,0 +1,22 @@
+{
+  "triggers": [
+    "同函数内对两个不同全局变量进行无同步的写操作，一个写零/NULL，另一个写非零值",
+    "编译器或 CPU 可能重排写指令顺序，导致其他线程观察到不一致的中间状态"
+  ],
+  "vulnerable_pattern": "同一函数内存在两个对共享全局变量的赋值，其中一个是零/NULL写，另一个是非零写，且该函数内没有互斥锁或内存屏障保护",
+  "ql_constraints": "exists(AssignExpr w1, AssignExpr w2, GlobalVariable v1, GlobalVariable v2, Function fn |
+  fn = w1.getEnclosingFunction() and fn = w2.getEnclosingFunction() and
+  w1 != w2 and
+  isSharedGlobalWrite(w1, v1) and isSharedGlobalWrite(w2, v2) and
+  v1 != v2 and
+  w1.getLocation().getStartLine() < w2.getLocation().getStartLine() and
+  (
+    (isNonZeroExpr(w1.getRValue()) and isZeroOrNullExpr(w2.getRValue())) or
+    (isZeroOrNullExpr(w1.getRValue()) and isNonZeroExpr(w2.getRValue()))
+  ) and
+  not exists(FunctionCall c |
+    c.getEnclosingFunction() = fn and
+    (isMutexLikeCall(c) or isBarrierLikeCall(c))
+  )
+)"
+}

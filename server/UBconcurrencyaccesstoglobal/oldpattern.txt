@@ -1,0 +1,7 @@
+{
+  "triggers": [
+    "编译器优化（如GCC 4.1.2）可能移除重复的asm指令，当asm缺少volatile时"
+  ],
+  "vulnerable_pattern": "inline asm语句缺少volatile限定符，被编译器视为无副作用，可能被优化掉",
+  "ql_constraints": "exists(InlineAssembly asm | not asm.hasVolatile() and asm.getNumOutputExprs() > 0)"
+}

@@ -1,8 +1,0 @@
-{
-    "triggers": [
-        "Compiler optimization removes a side-effecting operation due to missing volatile/memory barrier annotation",
-        "Two consecutive identical observations of state (inline asm or function call) with same inputs but expecting different outputs because the hidden state changes between them"
-    ],
-    "vulnerable_pattern": "An operation OP (either inline assembly or a function call) is invoked twice with identical input arguments; between the two invocations, a state-changing operation modifies the hidden state that OP reads; OP lacks a compiler hint (volatile for asm, or memory barrier/volatile access for function) that would prevent the compiler from treating OP as pure and eliminating the second invocation.",
-    "ql_constraints": "exists(Operation op1, Operation op2 | (op1 instanceof AsmStmt and op2 instanceof AsmStmt and not op1.isVolatile() and not op2.isVolatile() and op1.getText().matches(\"cpuid\") and op2.getText().matches(\"cpuid\")) or (op1 instanceof FunctionCall and op2 instanceof FunctionCall and op1.getTarget() = op2.getTarget() and op1.getArguments() = op2.getArguments() and exists(GlobalVariable gv | gv = op1.getTarget().getAnAccess() and not gv.isVolatile()) and not exists(AsmStmt barrier | barrier.getText().matches(\"volatile.*memory\"))) and op1.getEnclosingFunction() = op2.getEnclosingFunction() and op1.getLocation().getStartLine() < op2.getLocation().getStartLine() and exists(Stmt stateChange | stateChange in op1.getASuccessor*() and stateChange in op2.getAPredecessor*() and (stateChange.toString().regexpMatch(\"xsetbv|wrmsr|atomic|lock\") or stateChange instanceof FunctionCall and stateChange.getTarget().getName().regexpMatch(\".*barrier.*\"))))"
-}

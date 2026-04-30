@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "编译器优化（如-O2）可能导致对共享内存的读取重排序",
+    "硬件写入状态消息与驱动读取存在竞态条件"
+  ],
+  "vulnerable_pattern": "从同一共享内存指针先读取整个结构体（memcpy或直接结构体赋值），然后从中提取就绪标志位（位域读取或移位操作），但两者之间未插入内存屏障（如rmb）以强制读取顺序。",
+  "ql_constraints": "exists(PointerExpr ptr, Stmt wholeRead, Stmt bitRead | \n  (wholeRead.(Call).getTarget().getName() = \"memcpy\" and wholeRead.(Call).getArgument(1) = ptr) or \n  (wholeRead.(Assign).getLeftOperand() = ptr and wholeRead.(Assign).getRightOperand() = ptr) |\n  bitRead.(MemberAccess).getTarget() = ptr and \n  bitRead.getEnclosingFunction() = wholeRead.getEnclosingFunction() and\n  wholeRead.getParentStmt*().getLocation() <= bitRead.getLocation() and\n  not exists(FunctionCall barrier | barrier.getTarget().getName() in [\"rmb\", \"__sync_synchronize\"] and\n    barrier.getLocation() > wholeRead.getLocation() and barrier.getLocation() < bitRead.getLocation()))"
+}

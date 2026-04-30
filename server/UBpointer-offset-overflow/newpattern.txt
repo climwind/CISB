@@ -1,0 +1,10 @@
+{
+  "triggers": [
+    "Clang compiler optimization exploiting undefined behavior of pointer arithmetic (e.g., -O2)",
+    "Member offset > 0 in struct",
+    "Pointer may be NULL",
+    "NULL / non-NULL check of &ptr->member in if condition"
+  ],
+  "vulnerable_pattern": "if (condition involving &ptr->member) where condition is directly &ptr->member, &ptr->member != NULL, &ptr->member == NULL, or !&ptr->member, and offsetof(member) > 0. Compiler may assume the address of a non‑first member is always non‑NULL, eliminating the branch and causing incorrect control flow.",
+  "ql_constraints": "exists(IfStmt ifs, AddressOfExpr addrOf, FieldAccess fa, Expr cond | cond = ifs.getCondition() and addrOf.getOperand() = fa and (cond = addrOf or exists(BinaryOperation bop | cond = bop and (bop.getOperator() = \"!=\" or bop.getOperator() = \"==\") and ((bop.getLeftOperand() = addrOf and isNullLike(bop.getRightOperand())) or (bop.getRightOperand() = addrOf and isNullLike(bop.getLeftOperand())))) or exists(UnaryOperation uop | cond = uop and uop.getOperator() = \"!\" and uop.getOperand() = addrOf)) and fa.getTarget().getByteOffset() > 0)"
+}

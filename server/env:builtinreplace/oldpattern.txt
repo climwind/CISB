@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "GCC -O2 optimization that recognizes contiguous constant writes and replaces loop with memset",
+    "device memory requiring byte-unaligned or specific access (e.g., writel) on ARM64"
+  ],
+  "vulnerable_pattern": "Pointer to device memory declared as normal type (without __iomem), followed by a loop where each iteration assigns a constant (e.g., 0) to an array element via pointer dereference",
+  "ql_constraints": "exists(Variable v | v.getType() instanceof PointerType and not v.getType().(PointerType).hasAttribute('__iomem') and exists(Loop l | l contains AssignExpr a | a.getLValue().(PointerDerefExpr).getOperand() = v and a.getRValue().(ConstantExpr).getValue() = 0) and v.getInitializer().(AddExpr).getAnOperand().(FieldAccess).getField().getName() = 'cpu_addr')"
+}

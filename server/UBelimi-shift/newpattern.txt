@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "Compiler optimization removes condition check due to undefined left shift behavior",
+    "Left shift amount is a variable or a constant ≥32, potentially causing UB on 32-bit integer operand"
+  ],
+  "vulnerable_pattern": "Assignment: var = 1 << expr; followed by a condition check: if (var < 2) or var == 0 or var == 1, or a logical OR of these (e.g., var == 0 || var == 1), where expr is a variable or a constant literal with value ≥32.",
+  "ql_constraints": "LeftShiftExpr with left operand literal 1, shift amount of integral type that is either a VariableAccess or a constant literal ≥32, and the result is used in a Condition that checks for var < 2, var == 0, var == 1, or a logical OR (||) of such checks."
+}

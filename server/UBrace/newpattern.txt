@@ -1,0 +1,29 @@
+{
+  "triggers": [
+    "Compiler optimizations (e.g., -O2) allow store splitting/reordering for non-atomic assignments",
+    "A concurrent lockless reader in a different function accesses a field with the same name",
+    "The stored value is constructed by combining a pointer with flag/mask bits via arithmetic (+) or bitwise OR (|)"
+  ],
+  "vulnerable_pattern": "A plain (non-atomic, non-WRITE_ONCE) assignment to a pointer-typed struct field, where the right-hand side is a tagged pointer expression built by adding or OR'ing a pointer with flags/masks (or derived from such an operation), while another function performs a read of that same-named field without obvious exclusion.",
+  "ql_constraints": "exists(Assignment store, FieldAccess fa, Function fn |
+    fa = store.getLValue() and
+    fa.getTarget().getType() instanceof PointerType and
+    fn = store.getEnclosingFunction() and
+    // tagged pointer expression: addition or bitwise OR involving pointer/flag types
+    (store.getRValue().(AddExpr).getAnOperand().getType() instanceof PointerType or
+     store.getRValue().(OrBitwiseExpr).getAnOperand().getType() instanceof PointerType or
+     store.getRValue().getAChild*().(VariableAccess).getTarget().getName().regexpMatch('(?i).*(flag|mask|tag|encoded).*')) and
+    // no WRITE_ONCE/atomic store in the same function
+    not exists(FunctionCall c |
+      c.getEnclosingFunction() = fn and
+      c.getTarget().hasName(['WRITE_ONCE','atomic_store','atomic_store_explicit','__atomic_store_n','InterlockedExchangePointer'])
+    ) and
+    // another function reads this same-named field
+    exists(Function other, FieldAccess readFa |
+      other != fn and
+      readFa.getEnclosingFunction() = other and
+      readFa.getTarget().getName() = fa.getTarget().getName() and
+      not readFa.getParent*() instanceof AssignExpr
+    )
+  )"
+}

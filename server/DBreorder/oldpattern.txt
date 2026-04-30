@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    "Clang compiler with optimizations (e.g., -O2 or above)",
+    "Use of CO-RE relocations (__CORE_RELO) for bitfield access",
+    "Missing break statements in switch causing fall-through"
+  ],
+  "vulnerable_pattern": "p = s + __CORE_RELO(s, field, BYTE_OFFSET); switch (__CORE_RELO(s, field, BYTE_SIZE)) { case 1: val = *(const unsigned char *)p; case 2: val = *(const unsigned short *)p; case 4: val = *(const unsigned int *)p; case 8: val = *(const unsigned long long *)p; }",
+  "ql_constraints": "exists(AssignExpr ae | ae.getRHS().(MacroInvocation).getName() = '__CORE_RELO' and ae.getRHS().(MacroInvocation).getArgument(2).toString() = 'BYTE_OFFSET') and exists(SwitchStmt ss | ss.getSelector().(MacroInvocation).getName() = '__CORE_RELO' and ss.getSelector().(MacroInvocation).getArgument(2).toString() = 'BYTE_SIZE') and forall(Expr e | e = ae.getLHS() and exists(CaseStmt cs | cs.getParentStmt() = ss and cs.getStmt().(ExprStmt).getExpr().(AssignExpr).getRHS().(PointerDerefExpr).getPointer().getExpr() = e) and not exists(AsmStmt as | as.getOutputExpr().(AssignExpr).getLHS() = e and as.getInputExpr().(AssignExpr).getRHS() = e))"
+}

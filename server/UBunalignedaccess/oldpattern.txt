@@ -1,0 +1,8 @@
+{
+  "triggers": [
+    "编译器优化（如 -O2）启用严格别名和指针对齐假设",
+    "代码存在指针强制转换为对齐类型并解引用，且指针可能未对齐"
+  ],
+  "vulnerable_pattern": "*(TYPE *)pointer 或 function_to_cpu(*(TYPE *)pointer)，其中 pointer 可能未对齐，且转换目标类型是对齐的标量类型（如 __le16， __le32， __le64）",
+  "ql_constraints": "exists(Expr e, Type t | e.getUnderlyingType() instanceof VoidType and t instanceof IntegralType and t.getSize() >= 2 and e.(CastExpr).getExpr() = someExpr and e.(CastExpr).getType() = t and exists(MemberFunctionCall m | m.getTarget().getName() = \"le16_to_cpup\" or m.getTarget().getName() = \"le32_to_cpup\" or m.getTarget().getName() = \"le64_to_cpup\" or m.getTarget().getName() = \"be16_to_cpup\" or m.getTarget().getName() = \"be32_to_cpup\" or m.getTarget().getName() = \"be64_to_cpup\" and m.getArgument(0) = e) or exists(AssignExpr a | a.getLValue() = e.(CastExpr) and a.getLValue().(CastExpr).getType() instanceof PointerType and a.getLValue().(CastExpr).getType().(PointerType).getBaseType() instanceof IntegralType) )"
+}
